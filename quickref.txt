@@ -1,0 +1,52 @@
+// Interface quick reference
+
+class Partition {
+  forwardMap: [Int]
+  inverseMap: [Int]
+  inverse: Partition
+  init(forwardMap:)
+  subscript(_ inputIndex: Int) -> Int
+  subscript(_ p: Permutation) -> Permutation
+  subscript<T>(_ array: [T]) -> [T]
+  size() -> Int
+  domain() -> CountableRange<Int>
+  codomain() -> CountableRange<Int>
+
+  // constructors
+  static identity(size: Int)
+  static rotation(size: Int, offset: Int)
+}
+
+class SpanEmbedding {
+  order: Permutation
+  spans: [Span]
+  length: k
+
+  pointForPosition(_ position: k) -> Span.Point?
+
+  class Span {
+    index: Int
+    length: k
+    leftBoundary: k
+    rightBoundary: k
+
+    containsPosition(_ position: k) -> Bool
+    pointForPosition(_ position: k) -> SpanPoint
+    pointForOffset(_ offset: k) -> SpanPoint
+
+    class Point {
+      spanIndex: Int
+      position: k
+      offset: k
+
+    }
+  }
+}
+
+class IntervalExchangeMap {
+  spanCount: Int
+  spanLengths: [k]
+  input: SpanEmbedding
+  output: SpanEmbedding
+  inverse: IntervalExchangeMap
+}

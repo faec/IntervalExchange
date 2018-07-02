@@ -1,2 +1,13 @@
 # IntervalExchange
-Utilities for representing and manipulating interval exchange maps
+
+To build:
+
+```
+swift build -Xlinker -L/usr/local/lib [-c release]
+```
+
+To test:
+
+```
+swift test -Xlinker -L/usr/local/lib
+```
