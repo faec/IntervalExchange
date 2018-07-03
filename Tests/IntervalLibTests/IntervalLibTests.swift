@@ -82,7 +82,7 @@ final class IntervalExchangeTests: XCTestCase {
     XCTAssertEqual(g.canonicalPermutation().forwardMap, [2, 0, 1])
   }
 
-  func testCompose() {
+  func test3Compose() {
     let lengths =
         [k(1, over: 5), k(1, over: 3), k(7, over: 15)]
     let inputOrder = Permutation(forwardMap: [0, 1, 2])
@@ -91,23 +91,23 @@ final class IntervalExchangeTests: XCTestCase {
         spanLengths: lengths, inputOrder: inputOrder, outputOrder: outputOrder)
     let g = f[f]
     XCTAssertEqual(g.spanLengths, [
-        k(1, over: 6), k(1, over: 12), k(1, over: 6), k(7, over: 30),
-        k(1, over: 10), k(3, over: 20), k(1, over: 10)])
+        k(1, over: 5), k(4, over: 15), k(1, over: 15),
+        k(2, over: 15), k(1, over: 3)])
   }
 
-  /*func testCompose() {
+  func test4Compose() {
     let lengths =
         [k(1, over: 10), k(1, over: 6), k(1, over: 4), k(29, over: 60)]
     let inputOrder = Permutation(forwardMap: [1, 3, 0, 2])
     let outputOrder = Permutation(forwardMap: [2, 0, 3, 1])
     let f = IntervalExchangeMap(
-        inputOrder: inputOrder, outputOrder: outputOrder,
-        spanLengths: lengths)
+        spanLengths: lengths,
+        inputOrder: inputOrder, outputOrder: outputOrder)
     let g = f[f]
     XCTAssertEqual(g.spanLengths, [
-        k(1, over: 6), k(1, over: 12), k(1, over: 6), k(7, over: 30),
-        k(1, over: 10), k(3, over: 20), k(1, over: 10)])
-  }*/
+        k(1, over: 6), k(1, over: 12), k(1, over: 10), k(3, over: 10),
+        k(1, over: 10), k(1, over: 12), k(1, over: 6)])
+  }
 
   // TODO: add composition tests that aren't just exponentiation
 }
