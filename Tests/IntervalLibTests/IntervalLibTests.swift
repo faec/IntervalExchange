@@ -93,6 +93,7 @@ final class IntervalExchangeTests: XCTestCase {
     XCTAssertEqual(g.spanLengths, [
         k(1, over: 5), k(4, over: 15), k(1, over: 15),
         k(2, over: 15), k(1, over: 3)])
+    // TODO: Check the permutations and stuff too.
   }
 
   func test4Compose() {
@@ -110,4 +111,45 @@ final class IntervalExchangeTests: XCTestCase {
   }
 
   // TODO: add composition tests that aren't just exponentiation
+
+  func testLemma1_5() {
+    // "Test" EToIEM's Lemma 1.5: $\lambda \cdot w = 0$.
+    let lengths =
+        [k(1, over: 10), k(1, over: 6), k(1, over: 4), k(29, over: 60)]
+    let inputOrder = Permutation.identity(size: 4)
+    let outputOrder = Permutation(forwardMap: [3, 2, 1, 0])
+    let f = IntervalExchangeMap(
+        spanLengths: lengths,
+        inputOrder: inputOrder, outputOrder: outputOrder)
+
+    let λ: [k] = f.spanLengths
+    let w: [k] = f.spanOffsets()
+    XCTAssertEqual(λ.dot(w), k.zero())
+  }
+
+  func testIsIrreducible() {
+
+  }
+
+  func testRecurse() {
+    // This test case is drawn from Example 2.2 of EToIEM.
+    let A = 0, B = 1, C = 2, D = 3, E = 4
+    // "inverseMap" because "pi" is the inverse of "pi_0" and "pi_1".
+    let inputOrder = Permutation(inverseMap: [B, C, A, E, D])
+    let outputOrder = Permutation(inverseMap: [A, E, B, D, C])
+    let lengths = [k(1, over: 15), k(1, over: 12),
+        k(1, over: 4), k(1, over: 10), k(1, over: 3)]
+    let f = IntervalExchangeMap(
+        spanLengths: lengths,
+        inputOrder: inputOrder, outputOrder: outputOrder)
+
+    XCTAssert(f.spanLengths[D] < f.spanLengths[C])
+    XCTAssertEqual(f.type(), 1)
+    let r = f.recurse()
+    XCTAssertNotNil(r)
+    if r != nil {
+      XCTAssertEqual(r!.input.order.inverseMap, [B, C, D, A, E])
+      XCTAssertEqual(r!.output.order.inverseMap, [A, E, B, D, C])
+    }
+  }
 }

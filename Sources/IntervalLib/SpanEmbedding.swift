@@ -17,6 +17,12 @@ public class SpanEmbedding {
     self.length = pos
   }
 
+  public var lastSpan: Span {
+    get {
+      return spans[spans.count - 1]
+    }
+  }
+
   public func leftBoundaries() -> [k] {
     return spans.map { $0.leftBoundary }
   }

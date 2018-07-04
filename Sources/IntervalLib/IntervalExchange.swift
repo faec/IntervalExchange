@@ -1,17 +1,34 @@
 public typealias Q = GmpRational
 public typealias k = Q
 
+public extension Array where Element: Ring {
+  func dot(_ a: [Element]) -> Element? {
+    if self.count == a.count {
+      var total = Element.zero()
+      for i in 0..<self.count {
+        total += self[i] * a[i]
+      }
+      return total
+    }
+    return nil
+  }
+}
+
 public class IntervalExchangeMap {
   public typealias SpanPoint = SpanEmbedding.Span.Point
 
+  // EToIEM: $d$
   public let spanCount: Int
-  // EToIEM: spanLengths = $\lambda$
+  // EToIEM: $\lambda$
   public let spanLengths: [k]
   // EToIEM:
   //   input.order.forwardMap = $\pi_0$
-  //   input.spans[input.order[gamma]] = $\partial I_\gamma$
+  //   output.order.forwardMap = $\pi_1$
+  //   [input.order.inverseMap, output.order.inverseMap] = $\pi$
+  //   input.spans = $I$
+  //   input.spans[i] = $I_\alpha$, where $\alpha = i$
+  //   input.spans[input.order[i]] = $\partial I_\gamma$ where $\gamma$ = i
   public let input: SpanEmbedding
-  // EToIEM: output.order.forwardMap = $\pi_1$
   public let output: SpanEmbedding
 
   private var _inverse: IntervalExchangeMap?
@@ -30,6 +47,10 @@ public class IntervalExchangeMap {
   public convenience init(
       spanLengths: [k],
       inputOrder: Permutation, outputOrder: Permutation) {
+    if spanLengths.count != inputOrder.size() ||
+        spanLengths.count != outputOrder.size() {
+      fatalError("IntervalExchangeMap.init arrays must be the same length")
+    }
     let input = SpanEmbedding(spanLengths: spanLengths, order: inputOrder)
     let output = SpanEmbedding(spanLengths: spanLengths, order: outputOrder)
     self.init(spanLengths: spanLengths, input: input, output: output)
@@ -44,7 +65,7 @@ public class IntervalExchangeMap {
     return IntervalExchangeMap.compose(inner: f, outer: self)
   }
 
-  // "Canonical involution" in EToIEM.
+  // EToIEM: the "canonical involution".
   public var inverse: IntervalExchangeMap {
     if _inverse == nil {
       _inverse = IntervalExchangeMap(
@@ -53,7 +74,7 @@ public class IntervalExchangeMap {
     return _inverse!
   }
 
-  // The "monodromy invariant" in EToIEM. Independent of spanLengths.
+  // EToIEM: the "monodromy invariant". Independent of spanLengths.
   public func canonicalPermutation() -> Permutation {
     return output.order[input.order.inverse]
   }
@@ -64,6 +85,22 @@ public class IntervalExchangeMap {
 
   public func codomain() -> SpanEmbedding {
     return output
+  }
+
+  // EToIEM: $w = \Omega_\pi(\lambda)$
+  public func spanOffsets() -> [k] {
+    return (0..<spanCount).map { (spanIndex: Int) -> k in
+      var total = k.zero()
+      for i in 0..<spanCount {
+        if output.order[i] < output.order[spanIndex] {
+          total += spanLengths[i]
+        }
+        if input.order[i] < input.order[spanIndex] {
+          total -= spanLengths[i]
+        }
+      }
+      return total
+    }
   }
 
   public static func compose(
@@ -145,6 +182,108 @@ public class IntervalExchangeMap {
     let output = Permutation(forwardMap: newOutputOrder)
     return IntervalExchangeMap(
         spanLengths: newSpanLengths, inputOrder: input, outputOrder: output)
+  }
+
+  public func isIrreducible() -> Bool {
+    let map = self.canonicalPermutation().forwardMap
+    var highestSeen = -1
+    for i in 0..<(map.count - 1) {
+      if map[i] > highestSeen {
+        highestSeen = map[i]
+      }
+      if highestSeen == i {
+        return true
+      }
+    }
+    return false
+  }
+
+  // "type" in the sense of EToIEM:
+  // returns 0 if the final output span is shorter than the final
+  // input span, 1 if the final input span is longer, and nil if the
+  // two lengths are equal.
+  public func type() -> Int? {
+    let inputLength = input.lastSpan.length
+    let outputLength = output.lastSpan.length
+    if outputLength < inputLength {
+      return 0
+    }
+    if inputLength < outputLength {
+      return 1
+    }
+    return nil
+  }
+
+  // The Rauzy-Veech induction of the map.
+  // EToIEM:
+  //   f.recurse() = $\hat{R}(f)$
+  //   f.recurse().spanLengths = $\lambda'$
+  //   f.recurse().{input, output}.order = $\pi'$
+  public func recurse() -> IntervalExchangeMap? {
+    // EToIEM:
+    //   lastInputIndex = $\alpha(0)$
+    //   lastOutputIndex = $\alpha(1)$
+    //   spanLengths[lastInputIndex] = $\lambda_{\alpha(0)}$
+    //   spanLengths[lastOutputIndex] = $\lambda_{\alpha(1)}$
+    let lastInputIndex = input.order.inverse[spanCount - 1]
+    let lastOutputIndex = output.order.inverse[spanCount - 1]
+
+    if spanLengths[lastOutputIndex] < spanLengths[lastInputIndex] {
+      // type 0 in EToIEM.
+      // Cut off the last output span, and trim the last input span to
+      // match it.
+      var newLengths = spanLengths
+      newLengths[lastInputIndex] -= newLengths[lastOutputIndex]
+      // Input permutation is unchanged, but in the output the former last
+      // span now goes immediately after the trimmed span spans[lastInputIndex].
+      let newInputMap = input.order.forwardMap
+      var newOutputMap = output.order.forwardMap
+      let trimmedCutoff = newOutputMap[lastInputIndex]
+      for i in 0..<spanCount {
+        if newOutputMap[i] == spanCount - 1 {
+          newOutputMap[i] = trimmedCutoff + 1
+        } else if newOutputMap[i] > trimmedCutoff {
+          newOutputMap[i] += 1
+        }
+      }
+      return IntervalExchangeMap(
+          spanLengths: newLengths,
+          inputOrder: Permutation(forwardMap: newInputMap),
+          outputOrder: Permutation(forwardMap: newOutputMap))
+    } else if spanLengths[lastInputIndex] < spanLengths[lastOutputIndex] {
+      // type 1 in EToIEM
+      // Remove the last span of the input, and cut its length
+      // off the end of output.
+      var newLengths = spanLengths
+      newLengths[lastOutputIndex] -= newLengths[lastInputIndex]
+      var newInputMap = input.order.forwardMap
+      let newOutputMap = output.order.forwardMap
+      let trimmedCutoff = newInputMap[lastOutputIndex]
+      for i in 0..<spanCount {
+        if newInputMap[i] == spanCount - 1 {
+          newInputMap[i] = trimmedCutoff + 1
+        } else if newInputMap[i] > trimmedCutoff {
+          newInputMap[i] += 1
+        }
+      }
+      return IntervalExchangeMap(
+          spanLengths: newLengths,
+          inputOrder: Permutation(forwardMap: newInputMap),
+          outputOrder: Permutation(forwardMap: newOutputMap))
+    }
+    // Induction is not defined if the last spans on the input and
+    // output are the same length.
+    return nil
+  }
+
+  // EToIEM:
+  //   f.recurse(count: n) = $\hat{R}^n(f)$
+  public func recurse(count: Int) -> IntervalExchangeMap? {
+    var result: IntervalExchangeMap? = self
+    for _ in 0..<count {
+      result = result?.recurse()
+    }
+    return result
   }
 
   private class SpanInclusion {

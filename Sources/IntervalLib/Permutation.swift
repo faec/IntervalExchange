@@ -12,16 +12,11 @@ public class Permutation {
   }
 
   public convenience init(forwardMap: [Int]) {
-    var inv = [Int](repeating: -1, count: forwardMap.count)
-    for i in 0..<forwardMap.count {
-      let j = forwardMap[i]
-      // forward mapping is i -> j
-      if j < 0 || j >= forwardMap.count || inv[j] != -1 {
-        fatalError("Invalid permutation mapping: \(forwardMap)")
-      }
-      inv[forwardMap[i]] = i
-    }
-    self.init(forwardMap: forwardMap, inverseMap: inv)
+    self.init(forwardMap: forwardMap, inverseMap: _invertMap(forwardMap))
+  }
+
+  public convenience init(inverseMap: [Int]) {
+    self.init(forwardMap: _invertMap(inverseMap), inverseMap: inverseMap)
   }
 
   public subscript(_ inputIndex: Int) -> Int {
@@ -67,7 +62,7 @@ extension Permutation {
   }
 
   public static func rotation(size: Int, offset: Int) -> Permutation {
-    let forwardMap = (0..<size).map({AbsMod($0 + offset, size)})
+    let forwardMap = (0..<size).map({_absMod($0 + offset, size)})
     return Permutation(forwardMap: forwardMap)
   }
 }
@@ -78,6 +73,19 @@ extension Permutation: Equatable {
   }
 }
 
-public func AbsMod(_ a: Int, _ b: Int) -> Int {
+fileprivate func _absMod(_ a: Int, _ b: Int) -> Int {
   return (a % b + b) % b
+}
+
+fileprivate func _invertMap(_ map: [Int]) -> [Int] {
+  var inv = [Int](repeating: -1, count: map.count)
+  for i in 0..<map.count {
+    let j = map[i]
+    // forward mapping is i -> j
+    if j < 0 || j >= map.count || inv[j] != -1 {
+      fatalError("Noninvertible mapping: \(map)")
+    }
+    inv[map[i]] = i
+  }
+  return inv
 }
