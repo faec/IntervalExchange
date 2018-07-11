@@ -37,13 +37,11 @@ public class Permutation {
   }
 
   public var inverse: Permutation {
-    get {
-      if _inverse == nil {
-        _inverse = Permutation(
-            forwardMap: inverseMap, inverseMap: forwardMap, inverse: self)
-      }
-      return _inverse!
+    if _inverse == nil {
+      _inverse = Permutation(
+          forwardMap: inverseMap, inverseMap: forwardMap, inverse: self)
     }
+    return _inverse!
   }
 
   public func domain() -> CountableRange<Int> {
@@ -64,6 +62,12 @@ extension Permutation {
   public static func rotation(size: Int, offset: Int) -> Permutation {
     let forwardMap = (0..<size).map({_absMod($0 + offset, size)})
     return Permutation(forwardMap: forwardMap)
+  }
+}
+
+extension Permutation: CustomStringConvertible {
+  public var description: String {
+    return "Permutation(\(forwardMap))"
   }
 }
 
