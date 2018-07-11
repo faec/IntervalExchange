@@ -1,6 +1,28 @@
 import Foundation
 
-public class Interval {
+public protocol IntervalProtocol {
+  var leftBoundary: k { get }
+  var rightBoundary: k { get }
+  var length: k { get }
+}
+
+public extension IntervalProtocol {
+  public func containsPosition(_ position: k) -> Bool {
+    return (position >= leftBoundary && position < rightBoundary)
+  }
+}
+
+public protocol IntervalCollectionProtocol: Collection
+    where Element: IntervalProtocol {
+
+}
+
+extension Array: IntervalCollectionProtocol where Element: IntervalProtocol {
+
+}
+
+
+public class Interval: IntervalProtocol {
   public let length: k
   public let leftBoundary: k
   public let rightBoundary: k
@@ -31,9 +53,5 @@ public class Interval {
       right = max(right, interval.rightBoundary)
     }
     self.init(leftBoundary: left, rightBoundary: right)
-  }
-
-  public func containsPosition(_ position: k) -> Bool {
-    return (position >= leftBoundary && position < rightBoundary)
   }
 }

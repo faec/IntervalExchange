@@ -18,7 +18,7 @@ public extension Array where Element: Ring {
 //   outputIntervals.lengths() ==
 //       outputOrder[inputOrder.inverse[inputIntervals.lengths()]]
 public class IntervalTranslationMap {
-  public typealias IntervalPoint = SortedIntervals.IndexedPoint
+  public typealias IntervalPoint = IntervalRange.IndexedPoint
 
   // The smallest interval containing the input and output ranges.
   public let bounds: Interval
@@ -32,14 +32,14 @@ public class IntervalTranslationMap {
   //   inputIntervals = $I$
   //   inputIntervals[i] = $I_\alpha$, where $\alpha = i$
   //   inputIntervals[inputOrder[i]] = $\partial I_\gamma$ where $\gamma$ = i
-  public let inputIntervals: SortedIntervals
+  public let inputIntervals: IntervalRange
   public let inputOrder: Permutation
-  public let outputIntervals: SortedIntervals
+  public let outputIntervals: IntervalRange
   public let outputOrder: Permutation
 
   public init(
-      inputIntervals: SortedIntervals,
-      outputIntervals: SortedIntervals,
+      inputIntervals: IntervalRange,
+      outputIntervals: IntervalRange,
       inputOrder: Permutation,
       outputOrder: Permutation) {
     self.intervalCount = inputIntervals.count
@@ -76,8 +76,9 @@ public class IntervalTranslationMap {
     return outputIntervals[outputIndex].indexedPoint(offset: inputPoint.offset)
   }
 
-  public subscript(_ intervals: SortedIntervals) -> SortedIntervals {
-    let inputs = intervals.asRefinementOf(inputIntervals)
+  public subscript(_ intervals: IntervalRange) -> IntervalRange? {
+    let inputs = intervals.asSubrangeOf(inputIntervals)
+    guard !inputs.isEmpty else { return nil }
     var outputs: [Interval] = []
     for input in inputs {
       let inputContainer = input.containingInterval
@@ -89,7 +90,7 @@ public class IntervalTranslationMap {
             leftBoundary: outputContainer.leftBoundary + inputOffset,
             length: input.length))
     }
-    return SortedIntervals(fromSortedList: outputs)
+    return IntervalRange(fromSortedIntervals: outputs)
   }
 
   // EToIEM: the "monodromy invariant". Independent of interval lengths.
@@ -109,6 +110,17 @@ public class IntervalTranslationMap {
     }
   }
 
+  public func restrictToInputRange(
+      _ inputRange: IntervalRange) -> IntervalTranslationMap? {
+    let output = self[inputRange]
+    guard output != nil else { return nil }
+    return self
+  }
+
+  public func restrictToOutputRange(
+      _ outputRange: IntervalRange) -> IntervalTranslationMap {
+    return self
+  }
 }
 
 // Unlike EToIEM, this class doesn't require that bounds.leftBoundary == 0
@@ -132,9 +144,9 @@ public class IntervalExchangeMap: IntervalTranslationMap {
     }
     self.intervalLengths = intervalLengths
 
-    let inputIntervals = SortedIntervals(
+    let inputIntervals = IntervalRange(
         fromLengths: inputOrder[intervalLengths], leftBoundary: leftBoundary)
-    let outputIntervals = SortedIntervals(
+    let outputIntervals = IntervalRange(
         fromLengths: outputOrder[intervalLengths], leftBoundary: leftBoundary)
     super.init(
         inputIntervals: inputIntervals,
@@ -372,14 +384,14 @@ public class IntervalExchangeMap: IntervalTranslationMap {
   */
 
   /*private func _firstReturnMap(
-      range: SortedIntervals, acc: [(Int, [])])
+      range: IntervalRange, acc: [(Int, [])])
 
   // Given boundaries within this map, returns the first-return map
   // for this subinterval as a new map with domain length
   // (rightBoundary - leftBoundary).
-  public func firstReturnMap(range: SortedIntervals) -> ReturnMap {
+  public func firstReturnMap(range: IntervalRange) -> ReturnMap {
     var intervals = range
-    var returned: SortedIntervals? = nil
+    var returned: IntervalRange? = nil
     while true {
       let outputs = self[intervals]
       let returnedOutput = outputs.intersect()

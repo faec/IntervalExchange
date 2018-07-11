@@ -1,17 +1,54 @@
 import Foundation
 
+public class IntervalCollection<
+    IntervalType: IntervalProtocol>: IntervalCollectionProtocol {
+  public typealias Element = IntervalType
 
-public class IndexedIntervalCollection {
-  private let _intervals: [IndexedInterval]
+  private let _intervals: [IntervalType]
+  public init<CompatibleCollection: IntervalCollectionProtocol>(
+      _ intervals: CompatibleCollection)
+      where CompatibleCollection.Element == Element {
+    self._intervals = Array(intervals)
+  }
+}
 
-  public init(_ intervals: [Interval]) {
-    self._intervals = intervals.enumerated().map {
-      (intervalIndex: Int, interval: Interval) -> IndexedInterval in
+extension IntervalCollection: RandomAccessCollection {
+  public typealias Index = Int
+  public typealias Iterator = Array<Element>.Iterator
+
+  public var startIndex: Index {
+    return _intervals.startIndex
+  }
+  public var endIndex: Index {
+    return _intervals.endIndex
+  }
+
+  public subscript(index: Index) -> Element {
+    return _intervals[index]
+  }
+
+  public func index(after i: Index) -> Index {
+    return _intervals.index(after: i)
+  }
+
+  public func makeIterator() -> Iterator {
+    return _intervals.makeIterator()
+  }
+}
+
+public class IndexedIntervalCollection:
+    IntervalCollection<IndexedIntervalCollection.IndexedInterval> {
+
+  public override init<InputCollection: IntervalCollectionProtocol>(
+      _ intervals: InputCollection) {
+    let indexedIntervals = intervals.enumerated().map {
+      (intervalIndex: Int, interval: IntervalProtocol) -> IndexedInterval in
         IndexedInterval(
             index: intervalIndex,
             leftBoundary: interval.leftBoundary,
             rightBoundary: interval.rightBoundary)
     }
+    super.init(indexedIntervals)
   }
 
   public class IndexedInterval: Interval {
@@ -52,7 +89,7 @@ public class IndexedIntervalCollection {
   // A subinterval contained in a specified IndexedInterval in this
   // collection.
   public class Subinterval: Interval {
-    // The interval this one is contained in in the current SortedIntervals.
+    // The interval this one is contained in in the current IntervalRange.
     public let containingInterval: IndexedInterval
 
     fileprivate init(
@@ -79,41 +116,17 @@ public class IndexedIntervalCollection {
   }
 }
 
-extension IndexedIntervalCollection: RandomAccessCollection {
-  public typealias Element = IndexedInterval
-  public typealias Index = Int
-  public typealias Iterator = Array<Element>.Iterator
-
-  public var startIndex: Index {
-    return _intervals.startIndex
-  }
-  public var endIndex: Index {
-    return _intervals.endIndex
-  }
-
-  public subscript(index: Index) -> IndexedInterval {
-    return _intervals[index]
-  }
-
-  public func index(after i: Index) -> Index {
-    return _intervals.index(after: i)
-  }
-
-  public func makeIterator() -> Iterator {
-    return _intervals.makeIterator()
-  }
-}
 
 // A disjoint nonempty collection of intervals, sorted by position.
 // Used as input / output domains for translation maps.
-public class SortedIntervals: IndexedIntervalCollection {
+public class IntervalRange: IndexedIntervalCollection {
 
-  public init(fromSortedList intervals: [Interval]) {
+  public init(fromSortedIntervals intervals: [Interval]) {
     super.init(intervals)
   }
 
   public convenience init(fromInterval interval: Interval) {
-    self.init(fromSortedList: [interval])
+    self.init(fromSortedIntervals: [interval])
   }
 
   public convenience init(fromLengths lengths: [k], leftBoundary: k) {
@@ -124,7 +137,7 @@ public class SortedIntervals: IndexedIntervalCollection {
       intervals.append(interval)
       pos = interval.rightBoundary
     }
-    self.init(fromSortedList: intervals)
+    self.init(fromSortedIntervals: intervals)
   }
 
   // Assorted helpers
@@ -159,8 +172,8 @@ public class SortedIntervals: IndexedIntervalCollection {
     return nil
   }
 
-  public func asRefinementOf(
-      _ refiningIntervals: SortedIntervals) -> [Subinterval] {
+  public func asSubrangeOf(
+      _ refiningIntervals: IntervalRange) -> [Subinterval] {
     var results: [Subinterval] = []
     var intervalIter = makeIterator()
     var refiningIntervalIter = refiningIntervals.makeIterator()
@@ -177,5 +190,24 @@ public class SortedIntervals: IndexedIntervalCollection {
       }
     }
     return results
+  }
+
+  public class Subrange: IntervalCollection<Subinterval> {
+    public let containingRange: IntervalRange
+
+    private init(
+        containingRange: IntervalRange, sortedIntervals: [Subinterval]) {
+      self.containingRange = containingRange
+      super.init(sortedIntervals)
+    }
+
+    private class IntervalInclusion {
+      var index: Int
+      var length: Int
+      init(index: Int, length: Int) {
+        self.index = index
+        self.length = length
+      }
+    }
   }
 }
