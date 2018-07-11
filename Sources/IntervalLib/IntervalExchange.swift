@@ -14,14 +14,17 @@ public extension Array where Element: Ring {
   }
 }
 
-
-public class IntervalExchangeMap {
+// Invariants:
+//   outputIntervals.lengths() ==
+//       outputOrder[inputOrder.inverse[inputIntervals.lengths()]]
+public class IntervalTranslationMap {
   public typealias IntervalPoint = SortedIntervals.IndexedPoint
+
+  // The smallest interval containing the input and output ranges.
+  public let bounds: Interval
 
   // EToIEM: $d$
   public let intervalCount: Int
-  // EToIEM: $\lambda$
-  public let intervalLengths: [k]
   // EToIEM:
   //   inputOrder.forwardMap = $\pi_0$
   //   outputOrder.forwardMap = $\pi_1$
@@ -34,51 +37,37 @@ public class IntervalExchangeMap {
   public let outputIntervals: SortedIntervals
   public let outputOrder: Permutation
 
-  private var _inverse: IntervalExchangeMap?
-
-  private init(
-      intervalLengths: [k],
+  public init(
       inputIntervals: SortedIntervals,
       outputIntervals: SortedIntervals,
       inputOrder: Permutation,
-      outputOrder: Permutation,
-      inverse: IntervalExchangeMap? = nil) {
-    self.intervalCount = intervalLengths.count
-    self.intervalLengths = intervalLengths
+      outputOrder: Permutation) {
+    self.intervalCount = inputIntervals.count
+    self.bounds = Interval(
+        containing: [inputIntervals.bounds, outputIntervals.bounds])
     self.inputIntervals = inputIntervals
     self.outputIntervals = outputIntervals
     self.inputOrder = inputOrder
     self.outputOrder = outputOrder
-    self._inverse = inverse
   }
 
-  public init(_ ie: IntervalExchangeMap) {
-    self.intervalCount = ie.intervalLengths.count
-    self.intervalLengths = ie.intervalLengths
+  public init(_ ie: IntervalTranslationMap) {
+    self.intervalCount = ie.intervalCount
+    self.bounds = ie.bounds
     self.inputIntervals = ie.inputIntervals
     self.outputIntervals = ie.outputIntervals
     self.inputOrder = ie.inputOrder
     self.outputOrder = ie.outputOrder
-    self._inverse = ie.inverse
   }
 
-  public convenience init(
-      intervalLengths: [k],
-      inputOrder: Permutation, outputOrder: Permutation) {
-    if intervalLengths.count != inputOrder.size() ||
-        intervalLengths.count != outputOrder.size() {
-      fatalError("IntervalExchangeMap.init arrays must be the same length")
-    }
-
-    let inputIntervals = SortedIntervals(
-        fromLengths: inputOrder[intervalLengths])
-    let outputIntervals = SortedIntervals(
-        fromLengths: outputOrder[intervalLengths])
-    self.init(intervalLengths: intervalLengths,
-        inputIntervals: inputIntervals,
-        outputIntervals: outputIntervals,
-        inputOrder: inputOrder,
-        outputOrder: outputOrder)
+  // EToIEM: the "canonical involution".
+  public init(inverseOf itm: IntervalTranslationMap) {
+    self.intervalCount = itm.intervalCount
+    self.bounds = itm.bounds
+    self.inputIntervals = itm.outputIntervals
+    self.outputIntervals = itm.inputIntervals
+    self.inputOrder = itm.outputOrder
+    self.outputOrder = itm.inputOrder
   }
 
   public subscript(_ inputPoint: IntervalPoint) -> IntervalPoint {
@@ -87,25 +76,23 @@ public class IntervalExchangeMap {
     return outputIntervals[outputIndex].indexedPoint(offset: inputPoint.offset)
   }
 
-  public subscript(_ f: IntervalExchangeMap) -> IntervalExchangeMap {
-    return IntervalExchangeMap.compose(inner: f, outer: self)
-  }
-
-  // EToIEM: the "canonical involution".
-  // TODO: this leaks memory through a ref cycle, find a better design.
-  public var inverse: IntervalExchangeMap {
-    if _inverse == nil {
-      _inverse = IntervalExchangeMap(
-          intervalLengths: intervalLengths,
-          inputIntervals: outputIntervals,
-          outputIntervals: inputIntervals,
-          inputOrder: outputOrder, outputOrder: inputOrder,
-          inverse: self)
+  public subscript(_ intervals: SortedIntervals) -> SortedIntervals {
+    let inputs = intervals.asRefinementOf(inputIntervals)
+    var outputs: [Interval] = []
+    for input in inputs {
+      let inputContainer = input.containingInterval
+      let outputIndex = outputOrder[inputOrder.inverse[inputContainer.index]]
+      let outputContainer = outputIntervals[outputIndex]
+      let inputOffset = input.leftBoundary - inputContainer.leftBoundary
+      outputs.append(
+        Interval(
+            leftBoundary: outputContainer.leftBoundary + inputOffset,
+            length: input.length))
     }
-    return _inverse!
+    return SortedIntervals(fromSortedList: outputs)
   }
 
-  // EToIEM: the "monodromy invariant". Independent of intervalLengths.
+  // EToIEM: the "monodromy invariant". Independent of interval lengths.
   public func canonicalPermutation() -> Permutation {
     return outputOrder[inputOrder.inverse]
   }
@@ -113,19 +100,133 @@ public class IntervalExchangeMap {
   // EToIEM: $w = \Omega_\pi(\lambda)$
   public func intervalOffsets() -> [k] {
     return (0..<intervalCount).map { (intervalIndex: Int) -> k in
-      var total = k.zero()
-      for i in 0..<intervalCount {
-        if outputOrder[i] < outputOrder[intervalIndex] {
-          total += intervalLengths[i]
-        }
-        if inputOrder[i] < inputOrder[intervalIndex] {
-          total -= intervalLengths[i]
-        }
-      }
-      return total
+      let inputIndex = inputOrder[intervalIndex]
+      let outputIndex = outputOrder[intervalIndex]
+      let inputPos = inputIntervals[inputIndex].leftBoundary
+      let outputPos = outputIntervals[outputIndex].leftBoundary
+
+      return outputPos - inputPos
     }
   }
 
+}
+
+// Unlike EToIEM, this class doesn't require that bounds.leftBoundary == 0
+// Invariants:
+//   inputIntervals.bounds == outputIntervals.bounds == bounds
+//   inputIntervals.totalLength() = bounds.length
+public class IntervalExchangeMap: IntervalTranslationMap {
+
+  // EToIEM: $\lambda$
+  // This is technically redundant, because it's generated by
+  // inputOrder.inverse[inputIntervals.lengths()], but it's here to emphasize
+  // that it is one of the fundamental parameters of an exchange map,
+  public let intervalLengths: [k]
+
+  public init(
+      intervalLengths: [k], leftBoundary: k,
+      inputOrder: Permutation, outputOrder: Permutation) {
+    if intervalLengths.count != inputOrder.size() ||
+        intervalLengths.count != outputOrder.size() {
+      fatalError("IntervalTranslationMap.init arrays must be the same length")
+    }
+    self.intervalLengths = intervalLengths
+
+    let inputIntervals = SortedIntervals(
+        fromLengths: inputOrder[intervalLengths], leftBoundary: leftBoundary)
+    let outputIntervals = SortedIntervals(
+        fromLengths: outputOrder[intervalLengths], leftBoundary: leftBoundary)
+    super.init(
+        inputIntervals: inputIntervals,
+        outputIntervals: outputIntervals,
+        inputOrder: inputOrder,
+        outputOrder: outputOrder)
+  }
+
+  public init(inverseOf iem: IntervalExchangeMap) {
+    self.intervalLengths = iem.intervalLengths
+    super.init(inverseOf: iem)
+  }
+
+  public subscript(_ f: IntervalExchangeMap) -> IntervalExchangeMap {
+    return IntervalExchangeMap.compose(inner: f, outer: self)
+  }
+
+  // The Rauzy-Veech induction of the map.
+  // EToIEM:
+  //   f.recurse() = $\hat{R}(f)$
+  //   f.recurse().intervalLengths = $\lambda'$
+  //   f.recurse().{input, output}.order = $\pi'$
+  public func recurse() -> IntervalExchangeMap? {
+    // EToIEM:
+    //   lastInputIndex = $\alpha(0)$
+    //   lastOutputIndex = $\alpha(1)$
+    //   intervalLengths[lastInputIndex] = $\lambda_{\alpha(0)}$
+    //   intervalLengths[lastOutputIndex] = $\lambda_{\alpha(1)}$
+    let lastInputIndex = inputOrder.inverse[intervalCount - 1]
+    let lastOutputIndex = outputOrder.inverse[intervalCount - 1]
+
+    if intervalLengths[lastOutputIndex] < intervalLengths[lastInputIndex] {
+      // type 0 in EToIEM.
+      // Cut off the last output interval, and trim the last input interval to
+      // match it.
+      var newLengths = intervalLengths
+      newLengths[lastInputIndex] -= newLengths[lastOutputIndex]
+      // Input permutation is unchanged, but in the output the former last
+      // interval now goes immediately after the trimmed interval
+      // outputIntervals[outputOrder[lastInputIndex]].
+      let newInputMap = inputOrder.forwardMap
+      var newOutputMap = outputOrder.forwardMap
+      let trimmedCutoff = newOutputMap[lastInputIndex]
+      for i in 0..<intervalCount {
+        if newOutputMap[i] == intervalCount - 1 {
+          newOutputMap[i] = trimmedCutoff + 1
+        } else if newOutputMap[i] > trimmedCutoff {
+          newOutputMap[i] += 1
+        }
+      }
+      return IntervalExchangeMap(
+          intervalLengths: newLengths, leftBoundary: bounds.leftBoundary,
+          inputOrder: Permutation(forwardMap: newInputMap),
+          outputOrder: Permutation(forwardMap: newOutputMap))
+    } else if
+        intervalLengths[lastInputIndex] < intervalLengths[lastOutputIndex] {
+      // type 1 in EToIEM
+      // Remove the last interval of the input, and cut its length
+      // off the end of output.
+      var newLengths = intervalLengths
+      newLengths[lastOutputIndex] -= newLengths[lastInputIndex]
+      var newInputMap = inputOrder.forwardMap
+      let newOutputMap = outputOrder.forwardMap
+      let trimmedCutoff = newInputMap[lastOutputIndex]
+      for i in 0..<intervalCount {
+        if newInputMap[i] == intervalCount - 1 {
+          newInputMap[i] = trimmedCutoff + 1
+        } else if newInputMap[i] > trimmedCutoff {
+          newInputMap[i] += 1
+        }
+      }
+      return IntervalExchangeMap(
+          intervalLengths: newLengths, leftBoundary: bounds.leftBoundary,
+          inputOrder: Permutation(forwardMap: newInputMap),
+          outputOrder: Permutation(forwardMap: newOutputMap))
+    }
+    // Induction is not defined if the last intervals on the input and
+    // output are the same length.
+    return nil
+  }
+
+  // EToIEM:
+  //   f.recurse(count: n) = $\hat{R}^n(f)$
+  public func recurse(count: Int) -> IntervalExchangeMap? {
+    var result: IntervalExchangeMap? = self
+    for _ in 0..<count {
+      result = result?.recurse()
+    }
+    return result
+  }
+
+  // Invariants: f.bounds == g.bounds
   public static func compose(
       inner f: IntervalExchangeMap,
       outer g: IntervalExchangeMap) -> IntervalExchangeMap {
@@ -205,6 +306,7 @@ public class IntervalExchangeMap {
     let output = Permutation(forwardMap: newOutputOrder)
     return IntervalExchangeMap(
         intervalLengths: newIntervalLengths,
+        leftBoundary: f.bounds.leftBoundary,
         inputOrder: input, outputOrder: output)
   }
 
@@ -212,7 +314,7 @@ public class IntervalExchangeMap {
     if n == 0 {
       return IntervalExchangeMap.identity(length: inputIntervals.bounds.length)
     }
-    let baseMap = (n > 0) ? self : self.inverse
+    let baseMap = (n > 0) ? self : IntervalExchangeMap(inverseOf: self)
     var cur = baseMap
     for _ in 1..<n {
       cur = baseMap[cur]
@@ -250,82 +352,51 @@ public class IntervalExchangeMap {
     return nil
   }
 
-  // The Rauzy-Veech induction of the map.
-  // EToIEM:
-  //   f.recurse() = $\hat{R}(f)$
-  //   f.recurse().intervalLengths = $\lambda'$
-  //   f.recurse().{input, output}.order = $\pi'$
-  public func recurse() -> IntervalExchangeMap? {
-    // EToIEM:
-    //   lastInputIndex = $\alpha(0)$
-    //   lastOutputIndex = $\alpha(1)$
-    //   intervalLengths[lastInputIndex] = $\lambda_{\alpha(0)}$
-    //   intervalLengths[lastOutputIndex] = $\lambda_{\alpha(1)}$
-    let lastInputIndex = inputOrder.inverse[intervalCount - 1]
-    let lastOutputIndex = outputOrder.inverse[intervalCount - 1]
-
-    if intervalLengths[lastOutputIndex] < intervalLengths[lastInputIndex] {
-      // type 0 in EToIEM.
-      // Cut off the last output interval, and trim the last input interval to
-      // match it.
-      var newLengths = intervalLengths
-      newLengths[lastInputIndex] -= newLengths[lastOutputIndex]
-      // Input permutation is unchanged, but in the output the former last
-      // interval now goes immediately after the trimmed interval
-      // outputIntervals[outputOrder[lastInputIndex]].
-      let newInputMap = inputOrder.forwardMap
-      var newOutputMap = outputOrder.forwardMap
-      let trimmedCutoff = newOutputMap[lastInputIndex]
+  // An alternate implementation of intervalOffsets for exchange maps
+  // that more closely resembles the formulas in EToIEM.
+  /*
+  public override func intervalOffsets() -> [k] {
+    return (0..<intervalCount).map { (intervalIndex: Int) -> k in
+      var total = k.zero()
       for i in 0..<intervalCount {
-        if newOutputMap[i] == intervalCount - 1 {
-          newOutputMap[i] = trimmedCutoff + 1
-        } else if newOutputMap[i] > trimmedCutoff {
-          newOutputMap[i] += 1
+        if outputOrder[i] < outputOrder[intervalIndex] {
+          total += intervalLengths[i]
+        }
+        if inputOrder[i] < inputOrder[intervalIndex] {
+          total -= intervalLengths[i]
         }
       }
-      return IntervalExchangeMap(
-          intervalLengths: newLengths,
-          inputOrder: Permutation(forwardMap: newInputMap),
-          outputOrder: Permutation(forwardMap: newOutputMap))
-    } else if
-        intervalLengths[lastInputIndex] < intervalLengths[lastOutputIndex] {
-      // type 1 in EToIEM
-      // Remove the last interval of the input, and cut its length
-      // off the end of output.
-      var newLengths = intervalLengths
-      newLengths[lastOutputIndex] -= newLengths[lastInputIndex]
-      var newInputMap = inputOrder.forwardMap
-      let newOutputMap = outputOrder.forwardMap
-      let trimmedCutoff = newInputMap[lastOutputIndex]
-      for i in 0..<intervalCount {
-        if newInputMap[i] == intervalCount - 1 {
-          newInputMap[i] = trimmedCutoff + 1
-        } else if newInputMap[i] > trimmedCutoff {
-          newInputMap[i] += 1
-        }
-      }
-      return IntervalExchangeMap(
-          intervalLengths: newLengths,
-          inputOrder: Permutation(forwardMap: newInputMap),
-          outputOrder: Permutation(forwardMap: newOutputMap))
+      return total
     }
-    // Induction is not defined if the last intervals on the input and
-    // output are the same length.
-    return nil
+  }
+  */
+
+  /*private func _firstReturnMap(
+      range: SortedIntervals, acc: [(Int, [])])
+
+  // Given boundaries within this map, returns the first-return map
+  // for this subinterval as a new map with domain length
+  // (rightBoundary - leftBoundary).
+  public func firstReturnMap(range: SortedIntervals) -> ReturnMap {
+    var intervals = range
+    var returned: SortedIntervals? = nil
+    while true {
+      let outputs = self[intervals]
+      let returnedOutput = outputs.intersect()
+    }
+  }*/
+
+  private class IntervalInclusion {
+    var index: Int
+    var length: Int
+    init(index: Int, length: Int) {
+      self.index = index
+      self.length = length
+    }
   }
 
-  // EToIEM:
-  //   f.recurse(count: n) = $\hat{R}^n(f)$
-  public func recurse(count: Int) -> IntervalExchangeMap? {
-    var result: IntervalExchangeMap? = self
-    for _ in 0..<count {
-      result = result?.recurse()
-    }
-    return result
-  }
-
-  public class ReturnMap: IntervalExchangeMap {
-    public let originalMap: IntervalExchangeMap
+  public class ReturnMap: IntervalTranslationMap {
+    public let originalMap: IntervalTranslationMap
     // The power that the original map had to be raised to on each input
     // segment to generate this map:
     // for interval in map.inputIntervals {
@@ -337,78 +408,45 @@ public class IntervalExchangeMap {
     public let powers: [Int]
 
     fileprivate init(
-        ie: IntervalExchangeMap,
-        originalMap: IntervalExchangeMap,
+        ie: IntervalTranslationMap,
+        originalMap: IntervalTranslationMap,
         powers: [Int]) {
       self.originalMap = originalMap
       self.powers = powers
       super.init(ie)
     }
   }
-
-  public subscript(_ intervals: SortedIntervals) -> SortedIntervals {
-    let inputs = intervals.asRefinementOf(inputIntervals)
-    var outputs: [Interval] = []
-    for input in inputs {
-      let inputContainer = input.containingInterval
-      let outputIndex = outputOrder[inputOrder.inverse[inputContainer.index]]
-      let outputContainer = outputIntervals[outputIndex]
-      let inputOffset = input.leftBoundary - inputContainer.leftBoundary
-      outputs.append(
-        Interval(
-            leftBoundary: outputContainer.leftBoundary + inputOffset,
-            length: input.length))
-    }
-    return SortedIntervals(fromSortedList: outputs)
-  }
-
-  // Given boundaries within this map, returns the first-return map
-  // for this subinterval as a new map with domain length
-  // (rightBoundary - leftBoundary).
-  public func firstReturnMap(bounds: Interval) -> ReturnMap {
-    var intervals = SortedIntervals(fromSortedList: [bounds])
-    while true {
-      //let outputs = self[inputs]
-    }
-  }
-
-  private class IntervalInclusion {
-    var index: Int
-    var length: Int
-    init(index: Int, length: Int) {
-      self.index = index
-      self.length = length
-    }
-  }
 }
 
 // Assorted convenience constructors
 extension IntervalExchangeMap {
-  public static func identity(length: k) -> IntervalExchangeMap {
+  public static func identity(
+      length: k, leftBoundary: k = k.zero()) -> IntervalExchangeMap {
     let lengths = [length]
     return IntervalExchangeMap(
-      intervalLengths: lengths,
+      intervalLengths: lengths, leftBoundary: leftBoundary,
       inputOrder: Permutation.identity(size: 1),
       outputOrder: Permutation.identity(size: 1))
   }
 
-  public static func rotationOnIntervalLength(
-      _ intervalLength: k, rotationOffset: k) -> IntervalExchangeMap {
+  public static func rotationOnInterval(
+      _ interval: Interval, rotationOffset: k) -> IntervalExchangeMap {
     let offset =
         (rotationOffset < k.zero())
-          ? rotationOffset + intervalLength
+          ? rotationOffset + interval.length
           : rotationOffset
-    let lengths = [intervalLength - offset, offset]
+    let lengths = [interval.length - offset, offset]
     let inputOrder = Permutation.identity(size: 2)
     let outputOrder = Permutation(forwardMap: [1, 0])
     return IntervalExchangeMap(
-    intervalLengths: lengths, inputOrder: inputOrder, outputOrder: outputOrder)
+        intervalLengths: lengths, leftBoundary: interval.leftBoundary,
+        inputOrder: inputOrder, outputOrder: outputOrder)
   }
 
-  public static func linearCycle(
-      intervalLength: k, cycleLength: Int) -> IntervalExchangeMap {
-    let offset = intervalLength / k(cycleLength)
-    return IntervalExchangeMap.rotationOnIntervalLength(
-        intervalLength, rotationOffset: offset)
+  public static func linearCycleOnInterval(
+      _ interval: Interval, cycleLength: Int) -> IntervalExchangeMap {
+    let offset = interval.length / k(cycleLength)
+    return IntervalExchangeMap.rotationOnInterval(
+        interval, rotationOffset: offset)
   }
 }

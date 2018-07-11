@@ -46,9 +46,7 @@ public class IndexedIntervalCollection {
         return nil
       }
       return Subinterval(
-        leftBoundary: left,
-        rightBoundary: right,
-        containedIn: self)
+          leftBoundary: left, rightBoundary: right, containedIn: self)
     }
   }
   // A subinterval contained in a specified IndexedInterval in this
@@ -114,8 +112,12 @@ public class SortedIntervals: IndexedIntervalCollection {
     super.init(intervals)
   }
 
-  public convenience init(fromLengths lengths: [k]) {
-    var pos = k.zero()
+  public convenience init(fromInterval interval: Interval) {
+    self.init(fromSortedList: [interval])
+  }
+
+  public convenience init(fromLengths lengths: [k], leftBoundary: k) {
+    var pos = leftBoundary
     var intervals: [Interval] = []
     for length in lengths {
       let interval = Interval(leftBoundary: pos, length: length)
@@ -138,6 +140,14 @@ public class SortedIntervals: IndexedIntervalCollection {
 
   public func rightBoundaries() -> [k] {
     return self.map { $0.rightBoundary }
+  }
+
+  public func lengths() -> [k] {
+    return self.map { $0.length }
+  }
+
+  public func totalLength() -> k {
+    return lengths().reduce(k.zero(), +)
   }
 
   public func indexedPoint(position: k) -> IndexedPoint? {
@@ -166,7 +176,6 @@ public class SortedIntervals: IndexedIntervalCollection {
         refiningInterval = refiningIntervalIter.next()
       }
     }
-
-    return []
+    return results
   }
 }

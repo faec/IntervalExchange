@@ -3,8 +3,9 @@ import XCTest
 
 final class IntervalExchangeTests: XCTestCase {
   func test2Cycle() {
-    let f = IntervalExchangeMap.linearCycle(
-        intervalLength: k.one(), cycleLength: 2)
+    let f = IntervalExchangeMap.linearCycleOnInterval(
+        Interval(leftBoundary: k.zero(), rightBoundary: k.one()),
+        cycleLength: 2)
     XCTAssertEqual(
         f.inputIntervals.leftBoundaries(), [k.zero(), k(1, over: 2)])
     XCTAssertEqual(
@@ -19,15 +20,17 @@ final class IntervalExchangeTests: XCTestCase {
       if inputPoint != nil {
         let outputPos = f[inputPoint!].position
         XCTAssertEqual((inputPos - outputPos).abs(), k(1, over: 2))
-        let doubleMapPos = f.inverse[f[inputPoint!]].position
+        let inverse = IntervalExchangeMap(inverseOf: f)
+        let doubleMapPos = inverse[f[inputPoint!]].position
         XCTAssertEqual(inputPos, doubleMapPos)
       }
     }
   }
 
   func test5Cycle() {
-    let f = IntervalExchangeMap.linearCycle(
-        intervalLength: k.one(), cycleLength: 5)
+    let f = IntervalExchangeMap.linearCycleOnInterval(
+        Interval(leftBoundary: k.zero(), rightBoundary: k.one()),
+        cycleLength: 5)
     XCTAssertEqual(
         f.inputIntervals.leftBoundaries(), [k.zero(), k(4, over: 5)])
     XCTAssertEqual(
@@ -56,8 +59,9 @@ final class IntervalExchangeTests: XCTestCase {
   }
 
   func testComposeSimpleCycle() {
-    let f = IntervalExchangeMap.linearCycle(
-        intervalLength: k.one(), cycleLength: 5)
+    let f = IntervalExchangeMap.linearCycleOnInterval(
+        Interval(leftBoundary: k.zero(), rightBoundary: k.one()),
+        cycleLength: 5)
     let g = f[f]
 
     // Check the input / output positions.
@@ -92,7 +96,7 @@ final class IntervalExchangeTests: XCTestCase {
     let inputOrder = Permutation(forwardMap: [0, 1, 2])
     let outputOrder = Permutation(forwardMap: [1, 2, 0])
     let f = IntervalExchangeMap(
-        intervalLengths: lengths,
+        intervalLengths: lengths, leftBoundary: k.zero(),
         inputOrder: inputOrder, outputOrder: outputOrder)
     let g = f[f]
     XCTAssertEqual(g.intervalLengths, [
@@ -107,7 +111,7 @@ final class IntervalExchangeTests: XCTestCase {
     let inputOrder = Permutation(forwardMap: [1, 3, 0, 2])
     let outputOrder = Permutation(forwardMap: [2, 0, 3, 1])
     let f = IntervalExchangeMap(
-        intervalLengths: lengths,
+        intervalLengths: lengths, leftBoundary: k.zero(),
         inputOrder: inputOrder, outputOrder: outputOrder)
     let g = f[f]
     XCTAssertEqual(g.intervalLengths, [
@@ -124,7 +128,7 @@ final class IntervalExchangeTests: XCTestCase {
     let inputOrder = Permutation.identity(size: 4)
     let outputOrder = Permutation(forwardMap: [3, 2, 1, 0])
     let f = IntervalExchangeMap(
-        intervalLengths: lengths,
+        intervalLengths: lengths, leftBoundary: k.zero(),
         inputOrder: inputOrder, outputOrder: outputOrder)
 
     let λ: [k] = f.intervalLengths
@@ -145,7 +149,7 @@ final class IntervalExchangeTests: XCTestCase {
     let lengths = [k(1, over: 15), k(1, over: 12),
         k(1, over: 4), k(1, over: 10), k(1, over: 3)]
     let f = IntervalExchangeMap(
-        intervalLengths: lengths,
+        intervalLengths: lengths, leftBoundary: k.zero(),
         inputOrder: inputOrder, outputOrder: outputOrder)
 
     XCTAssert(f.intervalLengths[D] < f.intervalLengths[C])
