@@ -76,6 +76,14 @@ public class IntervalTranslationMap {
     return outputIntervals[outputIndex].indexedPoint(offset: inputPoint.offset)
   }
 
+  public subscript(position: k) -> k? {
+    let point = inputIntervals.indexedPointAtPosition(position)
+    if point != nil {
+      return self[point!].position
+    }
+    return nil
+  }
+
   public subscript(_ intervals: IntervalRange) -> IntervalRange? {
     let inputs = intervals.asSubrangeOf(inputIntervals)
     guard !inputs.isEmpty else { return nil }

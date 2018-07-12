@@ -66,7 +66,7 @@ public class IndexedIntervalCollection:
           leftBoundary: leftBoundary, rightBoundary: rightBoundary)
     }
 
-    public func indexedPoint(position: k) -> IndexedPoint {
+    public func indexedPointAtPosition(_ position: k) -> IndexedPoint {
       return IndexedPoint(interval: self, position: position)
     }
 
@@ -175,10 +175,10 @@ public class IntervalRange: IndexedIntervalCollection {
     return lengths().reduce(k.zero(), +)
   }
 
-  public func indexedPoint(position: k) -> IndexedPoint? {
+  public func indexedPointAtPosition(_ position: k) -> IndexedPoint? {
     for interval in self {
       if interval.containsPosition(position) {
-        return interval.indexedPoint(position: position)
+        return interval.indexedPointAtPosition(position)
       }
     }
     return nil

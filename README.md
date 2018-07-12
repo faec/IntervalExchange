@@ -21,7 +21,21 @@ swift test -Xlinker -L/usr/local/lib
 ## To run interactively in the swift repl
 
 Use `repl-debug` or `repl-release` to run a swift repl linking to the
-specified configuration after building the library as above.
+specified configuration after building the library as above:
+
+    $ ./repl-debug
+    Welcome to Apple Swift version 4.1.2 (swiftlang-902.0.54 clang-902.0.39.2). Type :help for assistance.
+    > import IntervalLib
+    > let interval = Interval(
+          leftBoundary: k.zero(), rightBoundary: k(3, over: 2))
+    interval: IntervalLib.Interval = { ... }
+    > let f = IntervalExchangeMap.linearCycleOnInterval(
+          interval, cycleLength: 5)
+    f: IntervalLib.IntervalExchangeMap = { ... }
+    > let position = k(1, over: 3)
+    > let output = f[position]
+    > print("f(\(position)) = \(output)")
+    f(1/3) = Optional(19/30)
 
 ## To generate documentation
 (requires sourcekitten and jazzy):
