@@ -18,6 +18,11 @@ swift build -Xlinker -L/usr/local/lib [-c release]
 swift test -Xlinker -L/usr/local/lib
 ```
 
+## To run interactively in the swift repl
+
+Use `repl-debug` or `repl-release` to run a swift repl linking to the
+specified configuration after building the library as above.
+
 ## To generate documentation
 (requires sourcekitten and jazzy):
 

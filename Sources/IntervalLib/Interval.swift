@@ -22,7 +22,7 @@ extension Array: IntervalCollectionProtocol where Element: IntervalProtocol {
 }
 
 
-public class Interval: IntervalProtocol {
+public class Interval: IntervalProtocol, CustomStringConvertible {
   public let length: k
   public let leftBoundary: k
   public let rightBoundary: k
@@ -53,5 +53,10 @@ public class Interval: IntervalProtocol {
       right = max(right, interval.rightBoundary)
     }
     self.init(leftBoundary: left, rightBoundary: right)
+  }
+
+  public var description: String {
+    return "Interval(leftBoundary: \(leftBoundary), " +
+        "rightBoundary: \(rightBoundary), length: \(length))"
   }
 }
