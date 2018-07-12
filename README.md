@@ -41,16 +41,6 @@ specified configuration after building the library as above:
 (requires sourcekitten and jazzy):
 
 ```
-sourcekitten doc --spm-module IntervalLib > intervallib.json
-jazzy \
-  --clean \
-  --sourcekitten-sourcefile intervallib.json \
-  --author fae \
-  --author_url http://faec.me \
-  --github_url https://github.com/faec/IntervalExchange \
-  --module-version 1.3.8 \
-  --module IntervalLib \
-  --root-url https://faec.me/files/IntervalExchange
-
-  # --github-file-prefix https://github.com/qutheory/vapor/tree/1.3.8
+./gendoc
 ```
+

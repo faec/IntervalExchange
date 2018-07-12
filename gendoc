@@ -1,0 +1,13 @@
+#!/bin/sh
+
+swift build -Xlinker -L/usr/local/lib \
+  && sourcekitten doc --spm-module IntervalLib > intervallib.json \
+  && jazzy \
+  	--clean \
+  	--sourcekitten-sourcefile "$PWD/intervallib.json" \
+  	--author faec.me \
+  	--author_url http://faec.me \
+  	--github_url https://github.com/faec/IntervalExchange \
+  	--module IntervalLib \
+  	--root-url https://faec.me/files/IntervalExchange \
+    --theme /Users/fae/Programming/jazzy/lib/jazzy/themes/apple
