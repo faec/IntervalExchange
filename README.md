@@ -1,18 +1,25 @@
 # IntervalExchange
 
-To build:
+This code requires some modules in order to link to external libraries
+(`libgmp` and `libbsd`). Follow the instructions on setting up `Modules` in
+[the BilliardSearch project](https://github.com/faec/BilliardSearch).
+
+## To build
+
+Once `Modules` is set up:
 
 ```
 swift build -Xlinker -L/usr/local/lib [-c release]
 ```
 
-To test:
+## To test
 
 ```
 swift test -Xlinker -L/usr/local/lib
 ```
 
-To generate documentation (requires sourcekitten and jazzy):
+## To generate documentation
+(requires sourcekitten and jazzy):
 
 ```
 sourcekitten doc --spm-module IntervalLib > intervallib.json
