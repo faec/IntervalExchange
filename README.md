@@ -4,6 +4,31 @@ This code requires some modules in order to link to external libraries
 (`libgmp` and `libbsd`). Follow the instructions on setting up `Modules` in
 [the BilliardSearch project](https://github.com/faec/BilliardSearch).
 
+Connecting to external libs in swift can be a little cumbersome as it requires
+setting up a separate local git repo. First, copy `ModuleTemplates` to a
+new directory alongside `IntervalExchange` (The `Modules` directory should be a
+sibling of `IntervalExchange`, although you can relocate it if needed by editing
+`IntervalExchange/Package.swift`):
+
+```
+mkdir Modules
+cp -r IntervalExchange/ModuleTemplates/* Modules/
+```
+
+Edit the `header` line in `Modules/CGmp/module.modulemap` to point to
+your system's `gmp.h` (common locations: `/usr/include/x86_64-linux-gnu/gmp.h`
+on Linux, `/usr/local/include/gmp.h` on Mac).
+
+Then set the module up as a local git repository:
+
+```
+cd Modules/CGmp
+git init
+git add .
+git commit -m "Initial checkin"
+git tag v1.0.0
+```
+
 ## To build
 
 Once `Modules` is set up:
@@ -43,4 +68,3 @@ specified configuration after building the library as above:
 ```
 ./gendoc
 ```
-
