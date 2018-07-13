@@ -5,7 +5,6 @@ import PackageDescription
 
 let deps = [
   Package.Dependency.package(url: "../Modules/CGmp", from: "1.0.0"),
-  Package.Dependency.package(url: "../Modules/Clibbsd", from: "1.0.0"),
 ]
 
 let package = Package(
