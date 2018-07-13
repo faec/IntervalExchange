@@ -1,5 +1,23 @@
+
+/**
+ Represents a permutation on a fixed integer range starting from 0.
+ Example use:
+
+     // Create a permutation from the values it maps to.
+     let p = Permutation(forwardMap: [2, 1, 3, 0])
+
+     // To apply the permutation to a value or array, use
+     // `Permutation.subscript(...)`.
+     // To invert it use `inverse`.
+     print("\(p[0])")           // 2
+     print("\(p.inverse[2])")   // 0
+     let strings = ["A", "B", "C", "D"]
+     print("\(p[strings]")      // ["C", "B", "D", "A"]
+ */
 public class Permutation {
+  /// This permutation maps `i` to `forwardMap[i]`.
   public let forwardMap: [Int]
+  /// This permutation maps `inverseMap[i]` to `i`.
   public let inverseMap: [Int]
 
   private var _inverse: Permutation?
@@ -11,6 +29,25 @@ public class Permutation {
     self._inverse = inverse
   }
 
+  /**
+   Creates a `Permutation` from its forward map. Testing?
+
+   Let's add another line here just to make sure the documentation
+   generator is getting something in the discussion section.
+
+   ## Stuff
+
+   Not really sure but [linkie linkie](https://www.github.com/), and
+   here's a code listing:
+   
+       let a: Int = 5
+       let p = Permutation.identity(length: 10)
+       let b = p[a]
+
+   - Parameters:
+     - forwardMap: an array of the permutation's values (`i` maps to
+       `forwardMap[i]`).
+   */
   public convenience init(forwardMap: [Int]) {
     self.init(forwardMap: forwardMap, inverseMap: _invertMap(forwardMap))
   }

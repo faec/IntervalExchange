@@ -1,3 +1,3 @@
 #!/bin/sh
 
-swift -I .build/debug -I ../modules -L .build/debug -lIntervalLib
+swift -I .build/debug -I ../Modules -L .build/debug -lIntervalLib
