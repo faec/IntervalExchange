@@ -15,7 +15,7 @@ final class IntervalExchangeTests: XCTestCase {
         k.zero(), k(1, over: 10), k(3, over: 7), k(1, over: 2),
         k(4, over: 7), k(3, over: 4), k(9, over: 10)]
     for inputPos in testValues {
-      let inputPoint = f.inputIntervals.indexedPoint(position: inputPos)
+      let inputPoint = f.inputIntervals.indexedPointAtPosition(inputPos)
       XCTAssertNotNil(inputPoint)
       if inputPoint != nil {
         let outputPos = f[inputPoint!].position
@@ -41,7 +41,7 @@ final class IntervalExchangeTests: XCTestCase {
       k(4, over: 7), k(3, over: 4)]
     let wrapValues = [ k(4, over: 5), k(9, over: 10) ]
     for inputPos in noWrapValues {
-      let inputPoint = f.inputIntervals.indexedPoint(position: inputPos)
+      let inputPoint = f.inputIntervals.indexedPointAtPosition(inputPos)
       XCTAssertNotNil(inputPoint)
       if inputPoint != nil {
         let outputPos = f[inputPoint!].position
@@ -49,7 +49,7 @@ final class IntervalExchangeTests: XCTestCase {
       }
     }
     for inputPos in wrapValues {
-      let inputPoint = f.inputIntervals.indexedPoint(position: inputPos)
+      let inputPoint = f.inputIntervals.indexedPointAtPosition(inputPos)
       XCTAssertNotNil(inputPoint)
       if inputPoint != nil {
         let outputPos = f[inputPoint!].position
@@ -76,7 +76,7 @@ final class IntervalExchangeTests: XCTestCase {
       k(4, over: 7), k(3, over: 4), k(9, over: 10)]
     let cutoff = k(3, over: 5)
     for pos in testPositions {
-      let input = g.inputIntervals.indexedPoint(position: pos)
+      let input = g.inputIntervals.indexedPointAtPosition(pos)
       XCTAssertNotNil(input)
       if input != nil {
         let expected = (pos >= cutoff) ? pos - cutoff : pos + k(2, over: 5)
@@ -117,6 +117,24 @@ final class IntervalExchangeTests: XCTestCase {
     XCTAssertEqual(g.intervalLengths, [
         k(1, over: 6), k(1, over: 12), k(1, over: 10), k(3, over: 10),
         k(1, over: 10), k(1, over: 12), k(1, over: 6)])
+  }
+
+  func testRepeatedCompose() {
+    let lengths = [k(1, over: 3), k(1, over: 5), k(1, over: 2)]
+    let inputOrder = Permutation.identity(size: 3)
+    let outputOrder = Permutation(forwardMap: [1, 2, 0])
+    let f = IntervalExchangeMap(
+        intervalLengths: lengths, leftBoundary: k.zero(),
+        inputOrder: inputOrder, outputOrder: outputOrder)
+    var g = f
+    while g.intervalLengths.max()! != k(1, over: 30) {
+      g = f[g]
+    }
+    XCTAssertEqual(g.intervalLengths.min()!, k(1, over: 30))
+    XCTAssertEqual(
+        g.canonicalPermutation().forwardMap,
+        [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+         23, 24, 25, 26, 27, 28, 29, 30, 0, 1, 2, 3, 4, 5])
   }
 
   // TODO: add composition tests that aren't just exponentiation

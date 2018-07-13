@@ -264,10 +264,9 @@ public class IntervalExchangeMap: IntervalTranslationMap {
     var gPos = k.zero()
 
     while fIndex < fLengths.count || gIndex < gLengths.count {
-      let index = newIntervalLengths.count
       let pos: k = nextPos
       let fLength =
-          (fIndex < f.intervalCount)
+          (fIndex < fLengths.count)
         ? f.outputIntervals[fIndex].length
         : nil
       let gLength =
@@ -289,17 +288,19 @@ public class IntervalExchangeMap: IntervalTranslationMap {
 
       let nextLength = nextPos - pos
       newIntervalLengths.append(nextLength)
-      if fNextPos != nil && fNextPos! == nextPos {
+      if fNextPos == nextPos {
         fInclusions.append(fInclusion)
-        fInclusion = IntervalInclusion(index: index + 1, length: 0)
+        fInclusion = IntervalInclusion(
+            index: newIntervalLengths.count, length: 0)
         fIndex += 1
-        fPos = fNextPos!
+        fPos = nextPos
       }
-      if gNextPos != nil && gNextPos! == nextPos {
+      if gNextPos == nextPos {
         gInclusions.append(gInclusion)
-        gInclusion = IntervalInclusion(index: index + 1, length: 0)
+        gInclusion = IntervalInclusion(
+            index: newIntervalLengths.count, length: 0)
         gIndex += 1
-        gPos = gNextPos!
+        gPos = nextPos
       }
     }
     var newInputOrder = [Int](repeating: -1, count: newIntervalLengths.count)
@@ -316,7 +317,7 @@ public class IntervalExchangeMap: IntervalTranslationMap {
     var newOutputOrder = [Int](repeating: -1, count: newIntervalLengths.count)
     var newOutputIndex = 0
     for gOutputIndex in g.outputOrder.codomain() {
-      let gInputIndex = f.inputOrder[g.outputOrder.inverse[gOutputIndex]]
+      let gInputIndex = g.inputOrder[g.outputOrder.inverse[gOutputIndex]]
       let gInc = gInclusions[gInputIndex]
       for j in 0..<gInc.length {
         newOutputOrder[gInc.index + j] = newOutputIndex + j
