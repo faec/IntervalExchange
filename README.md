@@ -49,6 +49,7 @@ specified configuration after building the library as above:
 
     $ ./repl-debug
     Welcome to Apple Swift version 4.1.2 (swiftlang-902.0.54 clang-902.0.39.2). Type :help for assistance.
+    > :set set print-decls false
     > import IntervalLib
     > let interval = Interval(
           leftBoundary: k.zero(), rightBoundary: k(3, over: 2))
