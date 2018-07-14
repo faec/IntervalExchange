@@ -1,21 +1,20 @@
 # IntervalExchange
 
-This code requires some modules in order to link to external libraries
-(`libgmp` and `libbsd`). Follow the instructions on setting up `Modules` in
-[the BilliardSearch project](https://github.com/faec/BilliardSearch).
-
+This code requires `libgmp` for its rational number computations.
 Connecting to external libs in swift can be a little cumbersome as it requires
 setting up a separate local git repo. First, copy `ModuleTemplates` to a
-new directory alongside `IntervalExchange` (The `Modules` directory should be a
-sibling of `IntervalExchange`, although you can relocate it if needed by editing
-`IntervalExchange/Package.swift`):
+new directory alongside `IntervalExchange`:
 
 ```
 mkdir Modules
 cp -r IntervalExchange/ModuleTemplates/* Modules/
 ```
 
-Edit the `header` line in `Modules/CGmp/module.modulemap` to point to
+(The `Modules` directory should be a
+sibling of `IntervalExchange`, although you can relocate it if needed by editing
+`IntervalExchange/Package.swift`)
+
+Make sure `libgmp` is installed, and edit the `header` line in `Modules/CGmp/module.modulemap` to point to
 your system's `gmp.h` (common locations: `/usr/include/x86_64-linux-gnu/gmp.h`
 on Linux, `/usr/local/include/gmp.h` on Mac).
 
