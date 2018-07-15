@@ -86,9 +86,9 @@ public class IntervalTranslationMap {
 
   public subscript(_ intervals: IntervalRange) -> IntervalRange? {
     let inputs = intervals.asSubrangeOf(inputIntervals)
-    guard !inputs.isEmpty else { return nil }
+    guard inputs != nil else { return nil }
     var outputs: [Interval] = []
-    for input in inputs {
+    for input in inputs! {
       let inputContainer = input.containingInterval
       let outputIndex = outputOrder[inputOrder.inverse[inputContainer.index]]
       let outputContainer = outputIntervals[outputIndex]
@@ -375,8 +375,7 @@ public class IntervalExchangeMap: IntervalTranslationMap {
 
   // An alternate implementation of intervalOffsets for exchange maps
   // that more closely resembles the formulas in EToIEM.
-  /*
-  public override func intervalOffsets() -> [k] {
+  public func alternateIntervalOffsets() -> [k] {
     return (0..<intervalCount).map { (intervalIndex: Int) -> k in
       var total = k.zero()
       for i in 0..<intervalCount {
@@ -390,19 +389,19 @@ public class IntervalExchangeMap: IntervalTranslationMap {
       return total
     }
   }
-  */
 
-  /*private func _firstReturnMap(
-      range: IntervalRange, acc: [(Int, [])])
+  //private func _firstReturnMap(
+  //    range: IntervalRange, acc: [(Int, [])])
 
   // Given boundaries within this map, returns the first-return map
-  // for this subinterval as a new map with domain length
-  // (rightBoundary - leftBoundary).
-  public func firstReturnMap(range: IntervalRange) -> ReturnMap {
+  // for this subinterval as a new map with its input intervals equal to
+  // the given range.
+  /*public func firstReturnMap(range: IntervalRange) -> ReturnMap {
     var intervals = range
     var returned: IntervalRange? = nil
     while true {
-      let outputs = self[intervals]
+      let outputs = self[intervals]!
+
       let returnedOutput = outputs.intersect()
     }
   }*/

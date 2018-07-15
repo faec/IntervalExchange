@@ -185,7 +185,7 @@ public class IntervalRange: IndexedIntervalCollection {
   }
 
   public func asSubrangeOf(
-      _ refiningIntervals: IntervalRange) -> [Subinterval] {
+      _ refiningIntervals: IntervalRange) -> Subrange? {
     var results: [Subinterval] = []
     var intervalIter = makeIterator()
     var refiningIntervalIter = refiningIntervals.makeIterator()
@@ -201,18 +201,23 @@ public class IntervalRange: IndexedIntervalCollection {
         refiningInterval = refiningIntervalIter.next()
       }
     }
-    return results
+    if !results.isEmpty {
+      return Subrange(sortedIntervals: results, containedIn: self)
+    }
+    return nil
   }
 
   public class Subrange: IntervalCollection<Subinterval> {
     public let containingRange: IntervalRange
 
-    private init(
-        containingRange: IntervalRange, sortedIntervals: [Subinterval]) {
+    fileprivate init(
+        sortedIntervals: [Subinterval],
+        containedIn containingRange: IntervalRange) {
       self.containingRange = containingRange
       super.init(sortedIntervals)
     }
 
+    // TODO: ...not sure if this is really needed?
     private class IntervalInclusion {
       var index: Int
       var length: Int
