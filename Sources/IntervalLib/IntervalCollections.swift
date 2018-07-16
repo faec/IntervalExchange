@@ -88,7 +88,7 @@ public class IndexedIntervalCollection:
   // A subinterval contained in a specified IndexedInterval in this
   // collection.
   public class Subinterval: Interval {
-    // The interval this one is contained in in the current IntervalRange.
+    // The interval this one is contained in in the current IntervalDomain.
     public let containingInterval: IndexedInterval
 
     fileprivate init(
@@ -123,7 +123,7 @@ public class IndexedIntervalCollection:
 
 // A disjoint nonempty collection of intervals, sorted by position.
 // Used as input / output domains for translation maps.
-public class IntervalRange: IndexedIntervalCollection {
+public class IntervalDomain: IndexedIntervalCollection {
 
   public init<InputCollection: IntervalCollectionProtocol>(
       fromSortedIntervals intervals: InputCollection) {
@@ -178,7 +178,7 @@ public class IntervalRange: IndexedIntervalCollection {
   }
 
   public func asSubrangeOf(
-      _ refiningIntervals: IntervalRange) -> Subrange? {
+      _ refiningIntervals: IntervalDomain) -> Subrange? {
     var results: [Subinterval] = []
     var intervalIter = makeIterator()
     var refiningIntervalIter = refiningIntervals.makeIterator()
@@ -201,16 +201,16 @@ public class IntervalRange: IndexedIntervalCollection {
   }
 
   public class ContainmentMap: IntervalMapProtocol {
-    public typealias FromType = IntervalRange
-    public typealias ToType = IntervalRange
+    public typealias FromType = IntervalDomain
+    public typealias ToType = IntervalDomain
     public typealias IndexMapType = IndexMap<Int, Int>
     public typealias InverseType = ContainmentMap
 
-    public let fromIntervals: IntervalRange
-    public let toIntervals: IntervalRange
+    public let fromIntervals: IntervalDomain
+    public let toIntervals: IntervalDomain
     public let indexMap: IndexMap<Int, Int>
 
-    fileprivate init(fromIntervals: IntervalRange, toIntervals: IntervalRange,
+    fileprivate init(fromIntervals: IntervalDomain, toIntervals: IntervalDomain,
         indexMap: IndexMap<Int, Int>) {
       self.fromIntervals = fromIntervals
       self.toIntervals = toIntervals
@@ -218,7 +218,7 @@ public class IntervalRange: IndexedIntervalCollection {
     }
   }
 
-  public class Intersection: IntervalRange {
+  public class Intersection: IntervalDomain {
     /// Invariant: containmentMaps[*].fromIntervals == self
     public var containmentMaps: [ContainmentMap]
 
@@ -227,64 +227,65 @@ public class IntervalRange: IndexedIntervalCollection {
       super.init(fromSortedIntervals: containmentMaps.first!.fromIntervals)
     }
 
-    public func containmentMapInto(_ range: IntervalRange) -> ContainmentMap? {
-      return containmentMaps.first(where: { $0.toIntervals === range })
+    public func containmentMapInto(
+        _ domain: IntervalDomain) -> ContainmentMap? {
+      return containmentMaps.first(where: { $0.toIntervals === domain })
     }
   }
 
-  public func intersectionWith(_ range: IntervalRange) -> Intersection? {
+  public func intersectionWith(_ domain: IntervalDomain) -> Intersection? {
     var selfIndex = startIndex
-    var rangeIndex = range.startIndex
+    var domainIndex = domain.startIndex
     var newIntervals: [Interval] = []
     var selfContainmentOrder: [Index: Index] = [:]
-    var rangeContainmentOrder: [Index: Index] = [:]
+    var domainContainmentOrder: [Index: Index] = [:]
 
     // TODO: Add the forward maps for the containments in the two intersected
     // sets.
-    while selfIndex != endIndex && rangeIndex != range.endIndex {
+    while selfIndex != endIndex && domainIndex != domain.endIndex {
       let selfInterval = self[selfIndex]
-      let rangeInterval = range[rangeIndex]
-      if selfInterval.rightBoundary <= rangeInterval.leftBoundary {
-        // selfInterval overlaps none of rangeInterval, discard it
+      let domainInterval = domain[domainIndex]
+      if selfInterval.rightBoundary <= domainInterval.leftBoundary {
+        // selfInterval overlaps none of domainInterval, discard it
         selfIndex += 1
-      } else if selfInterval.leftBoundary >= rangeInterval.rightBoundary {
-        rangeIndex += 1
+      } else if selfInterval.leftBoundary >= domainInterval.rightBoundary {
+        domainIndex += 1
       } else {
         let leftBoundary = Swift.max(
-            selfInterval.leftBoundary, rangeInterval.leftBoundary)
+            selfInterval.leftBoundary, domainInterval.leftBoundary)
         let rightBoundary = Swift.min(
-            selfInterval.rightBoundary, rangeInterval.rightBoundary)
+            selfInterval.rightBoundary, domainInterval.rightBoundary)
         selfContainmentOrder[newIntervals.count] = selfIndex
-        rangeContainmentOrder[newIntervals.count] = rangeIndex
+        domainContainmentOrder[newIntervals.count] = domainIndex
         newIntervals.append(Interval(
             leftBoundary: leftBoundary, rightBoundary: rightBoundary))
         if rightBoundary == selfInterval.rightBoundary {
           selfIndex += 1
         }
-        if rightBoundary == rangeInterval.rightBoundary {
-          rangeIndex += 1
+        if rightBoundary == domainInterval.rightBoundary {
+          domainIndex += 1
         }
       }
     }
-    let intersection = IntervalRange(fromSortedIntervals: newIntervals)
+    let intersection = IntervalDomain(fromSortedIntervals: newIntervals)
     if !newIntervals.isEmpty {
       let selfContainment = ContainmentMap(
           fromIntervals: intersection, toIntervals: self,
           indexMap: IndexMap(forwardMap: selfContainmentOrder))
-      let rangeContainment = ContainmentMap(
-          fromIntervals: intersection, toIntervals: range,
-          indexMap: IndexMap(forwardMap: rangeContainmentOrder))
-      return Intersection(containmentMaps: [selfContainment, rangeContainment])
+      let domainContainment = ContainmentMap(
+          fromIntervals: intersection, toIntervals: domain,
+          indexMap: IndexMap(forwardMap: domainContainmentOrder))
+      return Intersection(containmentMaps: [selfContainment, domainContainment])
     }
     return nil
   }
 
   public class Subrange: IntervalCollection<Subinterval> {
-    public let containingRange: IntervalRange
+    public let containingRange: IntervalDomain
 
     fileprivate init(
         sortedIntervals: [Subinterval],
-        containedIn containingRange: IntervalRange) {
+        containedIn containingRange: IntervalDomain) {
       self.containingRange = containingRange
       super.init(sortedIntervals)
     }

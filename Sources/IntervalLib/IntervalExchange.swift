@@ -18,7 +18,7 @@ public extension Array where Element: Ring {
 //   outputIntervals.lengths() ==
 //       outputOrder[inputOrder.inverse[inputIntervals.lengths()]]
 public class IntervalTranslationMap {
-  public typealias IntervalPoint = IntervalRange.IndexedPoint
+  public typealias IntervalPoint = IntervalDomain.IndexedPoint
 
   // The smallest interval containing the input and output ranges.
   public let bounds: Interval
@@ -32,14 +32,14 @@ public class IntervalTranslationMap {
   //   inputIntervals = $I$
   //   inputIntervals[i] = $I_\alpha$, where $\alpha = i$
   //   inputIntervals[inputOrder[i]] = $\partial I_\gamma$ where $\gamma$ = i
-  public let inputIntervals: IntervalRange
+  public let inputIntervals: IntervalDomain
   public let inputOrder: Permutation
-  public let outputIntervals: IntervalRange
+  public let outputIntervals: IntervalDomain
   public let outputOrder: Permutation
 
   public init(
-      inputIntervals: IntervalRange,
-      outputIntervals: IntervalRange,
+      inputIntervals: IntervalDomain,
+      outputIntervals: IntervalDomain,
       inputOrder: Permutation,
       outputOrder: Permutation) {
     self.intervalCount = inputIntervals.count
@@ -83,7 +83,7 @@ public class IntervalTranslationMap {
     return nil
   }
 
-  public subscript(_ intervals: IntervalRange) -> IntervalRange? {
+  public subscript(_ intervals: IntervalDomain) -> IntervalDomain? {
     if let inputs = intervals.asSubrangeOf(inputIntervals) {
       var outputs: [Interval] = []
       for input in inputs {
@@ -96,7 +96,7 @@ public class IntervalTranslationMap {
               leftBoundary: outputContainer.leftBoundary + inputOffset,
               length: input.length))
       }
-      return IntervalRange(fromSortedIntervals: outputs)
+      return IntervalDomain(fromSortedIntervals: outputs)
     }
     return nil
   }
@@ -119,7 +119,7 @@ public class IntervalTranslationMap {
   }
 
   public func restrictToInputRange(
-      _ inputRange: IntervalRange) -> IntervalTranslationMap? {
+      _ inputRange: IntervalDomain) -> IntervalTranslationMap? {
     // TODO: implement this
     /*if let output = self[inputRange] {
     }*/
@@ -127,7 +127,7 @@ public class IntervalTranslationMap {
   }
 
   public func restrictToOutputRange(
-      _ outputRange: IntervalRange) -> IntervalTranslationMap {
+      _ outputRange: IntervalDomain) -> IntervalTranslationMap {
     return self
   }
 }
@@ -153,9 +153,9 @@ public class IntervalExchangeMap: IntervalTranslationMap {
     }
     self.intervalLengths = intervalLengths
 
-    let inputIntervals = IntervalRange(
+    let inputIntervals = IntervalDomain(
         fromLengths: inputOrder[intervalLengths], leftBoundary: leftBoundary)
-    let outputIntervals = IntervalRange(
+    let outputIntervals = IntervalDomain(
         fromLengths: outputOrder[intervalLengths], leftBoundary: leftBoundary)
     super.init(
         inputIntervals: inputIntervals,
@@ -399,14 +399,14 @@ public class IntervalExchangeMap: IntervalTranslationMap {
   }
 
   //private func _firstReturnMap(
-  //    range: IntervalRange, acc: [(Int, [])])
+  //    range: IntervalDomain, acc: [(Int, [])])
 
   // Given boundaries within this map, returns the first-return map
   // for this subinterval as a new map with its input intervals equal to
   // the given range.
-  /*public func firstReturnMap(range: IntervalRange) -> ReturnMap {
+  /*public func firstReturnMap(range: IntervalDomain) -> ReturnMap {
     var intervals = range
-    var returned: IntervalRange? = nil
+    var returned: IntervalDomain? = nil
     while true {
       let outputs = self[intervals]!
 
