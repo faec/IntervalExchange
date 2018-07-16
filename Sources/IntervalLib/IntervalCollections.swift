@@ -125,7 +125,8 @@ public class IndexedIntervalCollection:
 // Used as input / output domains for translation maps.
 public class IntervalRange: IndexedIntervalCollection {
 
-  public init(fromSortedIntervals intervals: [Interval]) {
+  public init<InputCollection: IntervalCollectionProtocol>(
+      fromSortedIntervals intervals: InputCollection) {
     super.init(intervals)
   }
 
@@ -199,38 +200,77 @@ public class IntervalRange: IndexedIntervalCollection {
     return nil
   }
 
-  public class Inclusion: IntervalBijectionProtocol {
+  public class ContainmentMap: IntervalMapProtocol {
     public typealias FromType = IntervalRange
     public typealias ToType = IntervalRange
-    public typealias IndexMapType = IndexBijection<Int, Int>
-    public typealias InverseType = Inclusion
+    public typealias IndexMapType = IndexMap<Int, Int>
+    public typealias InverseType = ContainmentMap
 
-    public let inputIntervals: IntervalRange
-    public let outputIntervals: IntervalRange
-    public let indexMap: IndexBijection<Int, Int>
-    public lazy var inverse: Inclusion = Inclusion(
-        outputIntervals, includedIn: inputIntervals,
-        indexMap: indexMap.inverse)
+    public let fromIntervals: IntervalRange
+    public let toIntervals: IntervalRange
+    public let indexMap: IndexMap<Int, Int>
 
-    fileprivate init(_ intervals: IntervalRange, includedIn: IntervalRange,
-        indexMap: IndexBijection<Int, Int>) {
-      self.inputIntervals = intervals
-      self.outputIntervals = includedIn
+    fileprivate init(fromIntervals: IntervalRange, toIntervals: IntervalRange,
+        indexMap: IndexMap<Int, Int>) {
+      self.fromIntervals = fromIntervals
+      self.toIntervals = toIntervals
       self.indexMap = indexMap
     }
   }
-/*
-  public func asInclusionIn(
-      _ containingRange: IntervalRange) -> IntervalInclusion {
-    var intervalIter = makeIterator()
-    var refiningIntervalIter = refiningIntervals.makeIterator()
-    var curInterval = intervalIter.next()
-    var refiningInterval = refiningIntervalIter.next()
-    while curInterval != nil && refiningInterval != nil {
+
+  public class Intersection: IntervalRange {
+    /// Invariant: containmentMaps[*].fromIntervals == self
+    public var containmentMaps: [ContainmentMap]
+
+    fileprivate init(containmentMaps: [ContainmentMap]) {
+      self.containmentMaps = containmentMaps
+      super.init(fromSortedIntervals: containmentMaps.first!.fromIntervals)
     }
 
+    public func containmentMapInto(_ range: IntervalRange) -> ContainmentMap? {
+      return containmentMaps.first(where: { $0.toIntervals === range })
+    }
   }
-*/
+
+  public func intersectionWith(
+      _ range: IntervalRange) -> Intersection? {
+    var selfIter = makeIterator()
+    var rangeIter = range.makeIterator()
+    var selfInterval = selfIter.next()
+    var rangeInterval = rangeIter.next()
+    var newIntervals: [Interval] = []
+
+    // TODO: Add the forward maps for the containments in the two intersected
+    // sets.
+    while selfInterval != nil && rangeInterval != nil {
+      if selfInterval!.rightBoundary <= rangeInterval!.leftBoundary {
+        // selfInterval overlaps none of rangeInterval, discard it
+        selfInterval = selfIter.next()
+      } else if selfInterval!.leftBoundary >= rangeInterval!.rightBoundary {
+        rangeInterval = rangeIter.next()
+      } else {
+        let leftBoundary = Swift.max(
+            selfInterval!.leftBoundary, rangeInterval!.leftBoundary)
+        let rightBoundary = Swift.min(
+            selfInterval!.rightBoundary, rangeInterval!.rightBoundary)
+        newIntervals.append(Interval(
+            leftBoundary: leftBoundary, rightBoundary: rightBoundary))
+        if rightBoundary == selfInterval!.rightBoundary {
+          selfInterval = selfIter.next()
+        }
+        if rightBoundary == rangeInterval!.rightBoundary {
+          rangeInterval = rangeIter.next()
+        }
+      }
+    }
+    if !newIntervals.isEmpty {
+      //return Inclusion(fromIntervals)
+      //return Subrange(sortedIntervals: results, containedIn: self)
+    }
+    return nil
+
+  }
+
   public class Subrange: IntervalCollection<Subinterval> {
     public let containingRange: IntervalRange
 

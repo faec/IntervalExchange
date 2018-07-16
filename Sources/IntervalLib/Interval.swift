@@ -31,8 +31,8 @@ public protocol IntervalMapProtocol {
       IndexMapType.FromIndexType == FromType.Index,
       IndexMapType.ToIndexType == ToType.Index
 
-  var inputIntervals: FromType { get }
-  var outputIntervals: ToType { get }
+  var fromIntervals: FromType { get }
+  var toIntervals: ToType { get }
   var indexMap: IndexMapType { get }
 }
 

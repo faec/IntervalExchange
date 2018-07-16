@@ -53,4 +53,13 @@ public class IndexBijection<FromIndex, ToIndex>:
     self.inverseMap = inverseMap
     super.init(forwardMap: forwardMap)
   }
+
+  public override convenience init(forwardMap: [FromIndex: ToIndex]) {
+    var inverseMap: [ToIndex: FromIndex] = [:]
+    for (from, to) in forwardMap {
+      // Should we throw an error here if there's a duplicate value?
+      inverseMap[to] = from
+    }
+    self.init(forwardMap: forwardMap, inverseMap: inverseMap)
+  }
 }
