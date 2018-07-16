@@ -36,9 +36,4 @@ final class PermutationTests: XCTestCase {
       XCTAssertEqual(p.inverse[i], (i + size - offset) % size)
     }
   }
-
-  func testInverseCache() {
-    let p = Permutation.rotation(size: 6, offset: 1)
-    XCTAssertTrue(p.inverse.inverse === p)
-  }
 }

@@ -14,35 +14,22 @@
      let strings = ["A", "B", "C", "D"]
      print("\(p[strings]")      // ["C", "B", "D", "A"]
  */
-public class Permutation {
+public class Permutation: IndexBijectionProtocol {
+  public typealias From = Int
+  public typealias To = Int
+
   /// This permutation maps `i` to `forwardMap[i]`.
   public let forwardMap: [Int]
   /// This permutation maps `inverseMap[i]` to `i`.
   public let inverseMap: [Int]
 
-  private var _inverse: Permutation?
-
-  private init(
-      forwardMap: [Int], inverseMap: [Int], inverse: Permutation? = nil) {
+  private init(forwardMap: [Int], inverseMap: [Int]) {
     self.forwardMap = forwardMap
     self.inverseMap = inverseMap
-    self._inverse = inverse
   }
 
   /**
-   Creates a `Permutation` from its forward map. Testing?
-
-   Let's add another line here just to make sure the documentation
-   generator is getting something in the discussion section.
-
-   ## Stuff
-
-   Not really sure but [linkie linkie](https://www.github.com/), and
-   here's a code listing:
-   
-       let a: Int = 5
-       let p = Permutation.identity(length: 10)
-       let b = p[a]
+   Creates a `Permutation` from its forward map.
 
    - Parameters:
      - forwardMap: an array of the permutation's values (`i` maps to
@@ -73,13 +60,8 @@ public class Permutation {
     return forwardMap.count
   }
 
-  public var inverse: Permutation {
-    if _inverse == nil {
-      _inverse = Permutation(
-          forwardMap: inverseMap, inverseMap: forwardMap, inverse: self)
-    }
-    return _inverse!
-  }
+  public lazy var inverse =
+      Permutation(forwardMap: inverseMap, inverseMap: forwardMap)
 
   public func domain() -> CountableRange<Int> {
     return (0..<forwardMap.count)
@@ -93,7 +75,9 @@ public class Permutation {
 // Some convenience constructors
 extension Permutation {
   public static func identity(size: Int) -> Permutation {
-    return Permutation(forwardMap: Array(0..<size), inverseMap: Array(0..<size))
+    let p = Permutation(
+        forwardMap: Array(0..<size), inverseMap: Array(0..<size))
+    return p
   }
 
   public static func rotation(size: Int, offset: Int) -> Permutation {

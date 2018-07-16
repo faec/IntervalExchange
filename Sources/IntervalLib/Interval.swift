@@ -7,18 +7,45 @@ public protocol IntervalProtocol {
 }
 
 public extension IntervalProtocol {
+  public var shortDescription: String {
+    return "[\(leftBoundary), \(rightBoundary))"
+  }
+}
+
+public extension IntervalProtocol {
   public func containsPosition(_ position: k) -> Bool {
     return (position >= leftBoundary && position < rightBoundary)
   }
 }
 
 public protocol IntervalCollectionProtocol: Collection
-    where Element: IntervalProtocol {
+    where Element: IntervalProtocol, Index: Hashable {
 
 }
 
-extension Array: IntervalCollectionProtocol where Element: IntervalProtocol {
+public protocol IntervalMapProtocol {
+  associatedtype FromType: IntervalCollectionProtocol
+  associatedtype ToType: IntervalCollectionProtocol
 
+  associatedtype IndexMapType: IndexMapProtocol where
+      IndexMapType.FromIndexType == FromType.Index,
+      IndexMapType.ToIndexType == ToType.Index
+
+  var inputIntervals: FromType { get }
+  var outputIntervals: ToType { get }
+  var indexMap: IndexMapType { get }
+}
+
+public protocol IntervalBijectionProtocol: IntervalMapProtocol
+    where IndexMapType: IndexBijectionProtocol {
+  associatedtype Inverse: IntervalBijectionProtocol
+      where Inverse.FromType == ToType, Inverse.ToType == FromType
+
+  var inverse: Inverse { get }
+}
+
+extension Array: IntervalCollectionProtocol
+    where Element: IntervalProtocol {
 }
 
 
@@ -26,6 +53,12 @@ public class Interval: IntervalProtocol, CustomStringConvertible {
   public let length: k
   public let leftBoundary: k
   public let rightBoundary: k
+
+  public init(_ interval: IntervalProtocol) {
+    self.length = interval.length
+    self.leftBoundary = interval.leftBoundary
+    self.rightBoundary = interval.rightBoundary
+  }
 
   public init(leftBoundary: k, length: k) {
     if length <= k.zero() {

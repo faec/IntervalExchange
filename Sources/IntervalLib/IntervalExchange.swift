@@ -246,6 +246,13 @@ public class IntervalExchangeMap: IntervalTranslationMap {
     return result
   }
 
+  /*public static func newCompose(
+    inner f: IntervalExchangeMap,
+    outer g: IntervalExchangeMap) -> IntervalExchangeMap {
+    let fSubrange = f.outputIntervals.asSubrangeOf(g.inputIntervals)
+
+  )*/
+
   // Invariants: f.bounds == g.bounds
   public static func compose(
       inner f: IntervalExchangeMap,

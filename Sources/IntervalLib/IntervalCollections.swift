@@ -4,7 +4,8 @@ public class IntervalCollection<
     IntervalType: IntervalProtocol>: IntervalCollectionProtocol {
   public typealias Element = IntervalType
 
-  private let _intervals: [IntervalType]
+  private var _intervals: [IntervalType]
+
   public init<CompatibleCollection: IntervalCollectionProtocol>(
       _ intervals: CompatibleCollection)
       where CompatibleCollection.Element == Element {
@@ -41,29 +42,19 @@ public class IndexedIntervalCollection:
 
   public override init<InputCollection: IntervalCollectionProtocol>(
       _ intervals: InputCollection) {
-    let indexedIntervals = intervals.enumerated().map {
-      (intervalIndex: Int, interval: IntervalProtocol) -> IndexedInterval in
-        IndexedInterval(
-            index: intervalIndex,
-            leftBoundary: interval.leftBoundary,
-            rightBoundary: interval.rightBoundary)
+    let converted = intervals.enumerated().map {
+        (index: Int, interval: IntervalProtocol) -> IndexedInterval in
+      IndexedInterval(interval, index: index)
     }
-    super.init(indexedIntervals)
+    super.init(converted)
   }
 
   public class IndexedInterval: Interval {
     public let index: Int
 
-    public init(index: Int, leftBoundary: k, length: k) {
+    public init(_ interval: IntervalProtocol, index: Int) {
       self.index = index
-      super.init(
-          leftBoundary: leftBoundary, length: length)
-    }
-
-    public init(index: Int, leftBoundary: k, rightBoundary: k) {
-      self.index = index
-      super.init(
-          leftBoundary: leftBoundary, rightBoundary: rightBoundary)
+      super.init(interval)
     }
 
     public func indexedPointAtPosition(_ position: k) -> IndexedPoint {
@@ -87,9 +78,11 @@ public class IndexedIntervalCollection:
     }
 
     public override var description: String {
-      return "IndexedInterval(leftBoundary: \(leftBoundary), " +
-          "rightBoundary: \(rightBoundary), length: \(length), " +
-          "index: \(index))"
+      return "IndexedInterval(\(super.shortDescription), index: \(index))"
+    }
+
+    public var shortDescription: String {
+      return "\(index):\(super.shortDescription)"
     }
   }
   // A subinterval contained in a specified IndexedInterval in this
@@ -127,7 +120,6 @@ public class IndexedIntervalCollection:
     }
   }
 }
-
 
 // A disjoint nonempty collection of intervals, sorted by position.
 // Used as input / output domains for translation maps.
@@ -207,6 +199,38 @@ public class IntervalRange: IndexedIntervalCollection {
     return nil
   }
 
+  public class Inclusion: IntervalBijectionProtocol {
+    public typealias FromType = IntervalRange
+    public typealias ToType = IntervalRange
+    public typealias IndexMapType = IndexBijection<Int, Int>
+    public typealias InverseType = Inclusion
+
+    public let inputIntervals: IntervalRange
+    public let outputIntervals: IntervalRange
+    public let indexMap: IndexBijection<Int, Int>
+    public lazy var inverse: Inclusion = Inclusion(
+        outputIntervals, includedIn: inputIntervals,
+        indexMap: indexMap.inverse)
+
+    fileprivate init(_ intervals: IntervalRange, includedIn: IntervalRange,
+        indexMap: IndexBijection<Int, Int>) {
+      self.inputIntervals = intervals
+      self.outputIntervals = includedIn
+      self.indexMap = indexMap
+    }
+  }
+/*
+  public func asInclusionIn(
+      _ containingRange: IntervalRange) -> IntervalInclusion {
+    var intervalIter = makeIterator()
+    var refiningIntervalIter = refiningIntervals.makeIterator()
+    var curInterval = intervalIter.next()
+    var refiningInterval = refiningIntervalIter.next()
+    while curInterval != nil && refiningInterval != nil {
+    }
+
+  }
+*/
   public class Subrange: IntervalCollection<Subinterval> {
     public let containingRange: IntervalRange
 
