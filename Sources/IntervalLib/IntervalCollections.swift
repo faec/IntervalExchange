@@ -233,41 +233,50 @@ public class IntervalRange: IndexedIntervalCollection {
   }
 
   public func intersectionWith(_ range: IntervalRange) -> Intersection? {
-    var selfIter = makeIterator()
-    var rangeIter = range.makeIterator()
-    var selfInterval = selfIter.next()
-    var rangeInterval = rangeIter.next()
+    var selfIndex = startIndex
+    var rangeIndex = range.startIndex
     var newIntervals: [Interval] = []
+    var selfContainmentOrder: [Index: Index] = [:]
+    var rangeContainmentOrder: [Index: Index] = [:]
 
     // TODO: Add the forward maps for the containments in the two intersected
     // sets.
-    while selfInterval != nil && rangeInterval != nil {
-      if selfInterval!.rightBoundary <= rangeInterval!.leftBoundary {
+    while selfIndex != endIndex && rangeIndex != range.endIndex {
+      let selfInterval = self[selfIndex]
+      let rangeInterval = range[rangeIndex]
+      if selfInterval.rightBoundary <= rangeInterval.leftBoundary {
         // selfInterval overlaps none of rangeInterval, discard it
-        selfInterval = selfIter.next()
-      } else if selfInterval!.leftBoundary >= rangeInterval!.rightBoundary {
-        rangeInterval = rangeIter.next()
+        selfIndex += 1
+      } else if selfInterval.leftBoundary >= rangeInterval.rightBoundary {
+        rangeIndex += 1
       } else {
         let leftBoundary = Swift.max(
-            selfInterval!.leftBoundary, rangeInterval!.leftBoundary)
+            selfInterval.leftBoundary, rangeInterval.leftBoundary)
         let rightBoundary = Swift.min(
-            selfInterval!.rightBoundary, rangeInterval!.rightBoundary)
+            selfInterval.rightBoundary, rangeInterval.rightBoundary)
+        selfContainmentOrder[newIntervals.count] = selfIndex
+        rangeContainmentOrder[newIntervals.count] = rangeIndex
         newIntervals.append(Interval(
             leftBoundary: leftBoundary, rightBoundary: rightBoundary))
-        if rightBoundary == selfInterval!.rightBoundary {
-          selfInterval = selfIter.next()
+        if rightBoundary == selfInterval.rightBoundary {
+          selfIndex += 1
         }
-        if rightBoundary == rangeInterval!.rightBoundary {
-          rangeInterval = rangeIter.next()
+        if rightBoundary == rangeInterval.rightBoundary {
+          rangeIndex += 1
         }
       }
     }
+    let intersection = IntervalRange(fromSortedIntervals: newIntervals)
     if !newIntervals.isEmpty {
-      //return Inclusion(fromIntervals)
-      //return Subrange(sortedIntervals: results, containedIn: self)
+      let selfContainment = ContainmentMap(
+          fromIntervals: intersection, toIntervals: self,
+          indexMap: IndexMap(forwardMap: selfContainmentOrder))
+      let rangeContainment = ContainmentMap(
+          fromIntervals: intersection, toIntervals: range,
+          indexMap: IndexMap(forwardMap: rangeContainmentOrder))
+      return Intersection(containmentMaps: [selfContainment, rangeContainment])
     }
     return nil
-
   }
 
   public class Subrange: IntervalCollection<Subinterval> {
