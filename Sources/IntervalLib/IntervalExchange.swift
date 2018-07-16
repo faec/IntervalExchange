@@ -77,28 +77,28 @@ public class IntervalTranslationMap {
   }
 
   public subscript(position: k) -> k? {
-    let point = inputIntervals.indexedPointAtPosition(position)
-    if point != nil {
-      return self[point!].position
+    if let point = inputIntervals.indexedPointAtPosition(position) {
+      return self[point].position
     }
     return nil
   }
 
   public subscript(_ intervals: IntervalRange) -> IntervalRange? {
-    let inputs = intervals.asSubrangeOf(inputIntervals)
-    guard inputs != nil else { return nil }
-    var outputs: [Interval] = []
-    for input in inputs! {
-      let inputContainer = input.containingInterval
-      let outputIndex = outputOrder[inputOrder.inverse[inputContainer.index]]
-      let outputContainer = outputIntervals[outputIndex]
-      let inputOffset = input.leftBoundary - inputContainer.leftBoundary
-      outputs.append(
-        Interval(
-            leftBoundary: outputContainer.leftBoundary + inputOffset,
-            length: input.length))
+    if let inputs = intervals.asSubrangeOf(inputIntervals) {
+      var outputs: [Interval] = []
+      for input in inputs {
+        let inputContainer = input.containingInterval
+        let outputIndex = outputOrder[inputOrder.inverse[inputContainer.index]]
+        let outputContainer = outputIntervals[outputIndex]
+        let inputOffset = input.leftBoundary - inputContainer.leftBoundary
+        outputs.append(
+          Interval(
+              leftBoundary: outputContainer.leftBoundary + inputOffset,
+              length: input.length))
+      }
+      return IntervalRange(fromSortedIntervals: outputs)
     }
-    return IntervalRange(fromSortedIntervals: outputs)
+    return nil
   }
 
   // EToIEM: the "monodromy invariant". Independent of interval lengths.
@@ -120,9 +120,10 @@ public class IntervalTranslationMap {
 
   public func restrictToInputRange(
       _ inputRange: IntervalRange) -> IntervalTranslationMap? {
-    let output = self[inputRange]
-    guard output != nil else { return nil }
-    return self
+    // TODO: implement this
+    /*if let output = self[inputRange] {
+    }*/
+    return nil
   }
 
   public func restrictToOutputRange(

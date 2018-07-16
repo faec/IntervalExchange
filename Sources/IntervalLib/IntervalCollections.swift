@@ -232,8 +232,7 @@ public class IntervalRange: IndexedIntervalCollection {
     }
   }
 
-  public func intersectionWith(
-      _ range: IntervalRange) -> Intersection? {
+  public func intersectionWith(_ range: IntervalRange) -> Intersection? {
     var selfIter = makeIterator()
     var rangeIter = range.makeIterator()
     var selfInterval = selfIter.next()
