@@ -200,11 +200,11 @@ public class IntervalDomain: IndexedIntervalCollection {
     return nil
   }
 
-  public class ContainmentMap: IntervalMapProtocol {
+  public class CoveringMap: IntervalMapProtocol {
     public typealias FromType = IntervalDomain
     public typealias ToType = IntervalDomain
     public typealias IndexMapType = IndexMap<Int, Int>
-    public typealias InverseType = ContainmentMap
+    public typealias InverseType = CoveringMap
 
     public let fromIntervals: IntervalDomain
     public let toIntervals: IntervalDomain
@@ -219,17 +219,17 @@ public class IntervalDomain: IndexedIntervalCollection {
   }
 
   public class Intersection: IntervalDomain {
-    /// Invariant: containmentMaps[*].fromIntervals == self
-    public var containmentMaps: [ContainmentMap]
+    /// Invariant: coveringMaps[*].fromIntervals == self
+    public var coveringMaps: [CoveringMap]
 
-    fileprivate init(containmentMaps: [ContainmentMap]) {
-      self.containmentMaps = containmentMaps
-      super.init(fromSortedIntervals: containmentMaps.first!.fromIntervals)
+    fileprivate init(coveringMaps: [CoveringMap]) {
+      self.coveringMaps = coveringMaps
+      super.init(fromSortedIntervals: coveringMaps.first!.fromIntervals)
     }
 
-    public func containmentMapInto(
-        _ domain: IntervalDomain) -> ContainmentMap? {
-      return containmentMaps.first(where: { $0.toIntervals === domain })
+    public func coveringMapInto(
+        _ domain: IntervalDomain) -> CoveringMap? {
+      return coveringMaps.first(where: { $0.toIntervals === domain })
     }
   }
 
@@ -269,13 +269,13 @@ public class IntervalDomain: IndexedIntervalCollection {
     }
     let intersection = IntervalDomain(fromSortedIntervals: newIntervals)
     if !newIntervals.isEmpty {
-      let selfContainment = ContainmentMap(
+      let selfContainment = CoveringMap(
           fromIntervals: intersection, toIntervals: self,
           indexMap: IndexMap(forwardMap: selfContainmentOrder))
-      let domainContainment = ContainmentMap(
+      let domainContainment = CoveringMap(
           fromIntervals: intersection, toIntervals: domain,
           indexMap: IndexMap(forwardMap: domainContainmentOrder))
-      return Intersection(containmentMaps: [selfContainment, domainContainment])
+      return Intersection(coveringMaps: [selfContainment, domainContainment])
     }
     return nil
   }
