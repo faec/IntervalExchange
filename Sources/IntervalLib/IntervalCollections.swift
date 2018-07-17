@@ -11,6 +11,10 @@ public class IntervalCollection<
       where CompatibleCollection.Element == Element {
     self._intervals = Array(intervals)
   }
+
+  public init(_ intervalCollection: IntervalCollection) {
+    self._intervals = intervalCollection._intervals
+  }
 }
 
 extension IntervalCollection: RandomAccessCollection {
@@ -47,6 +51,10 @@ public class IndexedIntervalCollection:
       IndexedInterval(interval, index: index)
     }
     super.init(converted)
+  }
+
+  public init(_ iic: IndexedIntervalCollection) {
+    super.init(iic)
   }
 
   public class IndexedInterval: Interval {
@@ -130,6 +138,10 @@ public class IntervalDomain: IndexedIntervalCollection {
     super.init(intervals)
   }
 
+  public init(_ domain: IntervalDomain) {
+    super.init(domain)
+  }
+
   public convenience init(fromInterval interval: Interval) {
     self.init(fromSortedIntervals: [interval])
   }
@@ -200,20 +212,15 @@ public class IntervalDomain: IndexedIntervalCollection {
     return nil
   }
 
-  public class Cover: IntervalMapProtocol {
-    public typealias FromType = IntervalDomain
-    public typealias ToType = IntervalDomain
-    public typealias IndexMapType = IndexMap<Int, Int>
-    public typealias InverseType = Cover
-
-    public let fromIntervals: IntervalDomain
-    public let toIntervals: IntervalDomain
+  public class Cover {
+    /// The intervals making up the cover.
+    public let intervals: IntervalDomain
+    /// A map from the source interval indices to the index of their
+    /// covering interval in `intervals`.
     public let indexMap: IndexMap<Int, Int>
 
-    fileprivate init(fromIntervals: IntervalDomain, toIntervals: IntervalDomain,
-        indexMap: IndexMap<Int, Int>) {
-      self.fromIntervals = fromIntervals
-      self.toIntervals = toIntervals
+    fileprivate init(intervals: IntervalDomain, indexMap: IndexMap<Int, Int>) {
+      self.intervals = intervals
       self.indexMap = indexMap
     }
   }
@@ -222,60 +229,61 @@ public class IntervalDomain: IndexedIntervalCollection {
     /// Invariant: covers[*].fromIntervals == self
     public var covers: [Cover]
 
-    fileprivate init(covers: [Cover]) {
+    fileprivate init(_ intervals: IntervalDomain, covers: [Cover]) {
       self.covers = covers
-      super.init(fromSortedIntervals: covers.first!.fromIntervals)
+      super.init(intervals)
     }
 
     public func coveredBy(
         _ domain: IntervalDomain) -> Cover? {
-      return covers.first(where: { $0.toIntervals === domain })
+      return covers.first(where: { $0.intervals === domain })
     }
   }
 
   public func intersectionWith(_ domain: IntervalDomain) -> Intersection? {
-    var selfIndex = startIndex
-    var domainIndex = domain.startIndex
+    let domain0 = self
+    let domain1 = domain
+    var curIndex0 = domain0.startIndex
+    var curIndex1 = domain1.startIndex
+    var coverMap0: [Index: Index] = [:]
+    var coverMap1: [Index: Index] = [:]
+
     var newIntervals: [Interval] = []
-    var selfContainmentOrder: [Index: Index] = [:]
-    var domainContainmentOrder: [Index: Index] = [:]
 
     // TODO: Add the forward maps for the containments in the two intersected
     // sets.
-    while selfIndex != endIndex && domainIndex != domain.endIndex {
-      let selfInterval = self[selfIndex]
-      let domainInterval = domain[domainIndex]
-      if selfInterval.rightBoundary <= domainInterval.leftBoundary {
-        // selfInterval overlaps none of domainInterval, discard it
-        selfIndex += 1
-      } else if selfInterval.leftBoundary >= domainInterval.rightBoundary {
-        domainIndex += 1
+    while curIndex0 != domain0.endIndex && curIndex1 != domain1.endIndex {
+      let interval0 = domain0[curIndex0]
+      let interval1 = domain1[curIndex1]
+      if interval0.rightBoundary <= interval1.leftBoundary {
+        curIndex0 += 1
+      } else if interval1.rightBoundary <= interval0.leftBoundary {
+        curIndex1 += 1
       } else {
         let leftBoundary = Swift.max(
-            selfInterval.leftBoundary, domainInterval.leftBoundary)
+            interval0.leftBoundary, interval1.leftBoundary)
         let rightBoundary = Swift.min(
-            selfInterval.rightBoundary, domainInterval.rightBoundary)
-        selfContainmentOrder[newIntervals.count] = selfIndex
-        domainContainmentOrder[newIntervals.count] = domainIndex
+            interval0.rightBoundary, interval1.rightBoundary)
+        coverMap0[newIntervals.count] = curIndex0
+        coverMap1[newIntervals.count] = curIndex1
         newIntervals.append(Interval(
             leftBoundary: leftBoundary, rightBoundary: rightBoundary))
-        if rightBoundary == selfInterval.rightBoundary {
-          selfIndex += 1
+        if rightBoundary == interval0.rightBoundary {
+          curIndex0 += 1
         }
-        if rightBoundary == domainInterval.rightBoundary {
-          domainIndex += 1
+        if rightBoundary == interval1.rightBoundary {
+          curIndex1 += 1
         }
       }
     }
     let intersection = IntervalDomain(fromSortedIntervals: newIntervals)
     if !newIntervals.isEmpty {
-      let selfContainment = Cover(
-          fromIntervals: intersection, toIntervals: self,
-          indexMap: IndexMap(forwardMap: selfContainmentOrder))
-      let domainContainment = Cover(
-          fromIntervals: intersection, toIntervals: domain,
-          indexMap: IndexMap(forwardMap: domainContainmentOrder))
-      return Intersection(covers: [selfContainment, domainContainment])
+      let cover0 = Cover(
+          intervals: domain0, indexMap: IndexMap(forwardMap: coverMap0))
+      let cover1 = Cover(
+          intervals: domain1, indexMap: IndexMap(forwardMap: coverMap1))
+      return Intersection(
+          intersection, covers: [cover0, cover1])
     }
     return nil
   }
