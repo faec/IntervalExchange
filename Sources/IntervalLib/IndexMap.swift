@@ -7,55 +7,55 @@
 // also conforms to IndexBijectionProtocol.
 
 public protocol IndexMapProtocol {
-  associatedtype FromIndexType: Hashable
-  associatedtype ToIndexType
+  associatedtype InputIndexType: Hashable
+  associatedtype OutputIndexType
 
-  subscript(_ inputIndex: FromIndexType) -> ToIndexType { get }
+  subscript(_ inputIndex: InputIndexType) -> OutputIndexType { get }
 }
 
 public protocol IndexBijectionProtocol : IndexMapProtocol {
   associatedtype InverseType: IndexMapProtocol where
-      InverseType.FromIndexType == ToIndexType,
-      InverseType.ToIndexType == FromIndexType
+      InverseType.InputIndexType == OutputIndexType,
+      InverseType.OutputIndexType == InputIndexType
 
   var inverse: InverseType { get }
 }
 
-public class IndexMap<FromIndex, ToIndex>: IndexMapProtocol
-    where FromIndex: Hashable {
+public class IndexMap<InputIndex, OutputIndex>: IndexMapProtocol
+    where InputIndex: Hashable {
 
-  public typealias FromIndexType = FromIndex
-  public typealias ToIndexType = ToIndex
+  public typealias InputIndexType = InputIndex
+  public typealias OutputIndexType = OutputIndex
 
-  public let forwardMap: [FromIndex: ToIndex]
+  public let forwardMap: [InputIndex: OutputIndex]
 
-  public init(forwardMap: [FromIndex: ToIndex]) {
+  public init(forwardMap: [InputIndex: OutputIndex]) {
     self.forwardMap = forwardMap
   }
 
-  public subscript(_ inputIndex: FromIndex) -> ToIndex {
+  public subscript(_ inputIndex: InputIndex) -> OutputIndex {
     return forwardMap[inputIndex]!
   }
 }
 
-public class IndexBijection<FromIndex, ToIndex>:
-    IndexMap<FromIndex, ToIndex>, IndexBijectionProtocol
-    where FromIndex: Hashable, ToIndex: Hashable {
+public class IndexBijection<InputIndex, OutputIndex>:
+    IndexMap<InputIndex, OutputIndex>, IndexBijectionProtocol
+    where InputIndex: Hashable, OutputIndex: Hashable {
 
-  public let inverseMap: [ToIndex: FromIndex]
+  public let inverseMap: [OutputIndex: InputIndex]
 
-  public typealias InverseType = IndexBijection<ToIndex, FromIndex>
+  public typealias InverseType = IndexBijection<OutputIndex, InputIndex>
   public lazy var inverse =
       InverseType(forwardMap: inverseMap, inverseMap: forwardMap)
 
   public init(
-      forwardMap: [FromIndex: ToIndex], inverseMap: [ToIndex: FromIndex]) {
+      forwardMap: [InputIndex: OutputIndex], inverseMap: [OutputIndex: InputIndex]) {
     self.inverseMap = inverseMap
     super.init(forwardMap: forwardMap)
   }
 
-  public override convenience init(forwardMap: [FromIndex: ToIndex]) {
-    var inverseMap: [ToIndex: FromIndex] = [:]
+  public override convenience init(forwardMap: [InputIndex: OutputIndex]) {
+    var inverseMap: [OutputIndex: InputIndex] = [:]
     for (from, to) in forwardMap {
       // Should we throw an error here if there's a duplicate value?
       inverseMap[to] = from

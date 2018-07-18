@@ -14,6 +14,48 @@ public extension Array where Element: Ring {
   }
 }
 
+/*public class AlternateTranslationMap {
+  public let input: IntervalDomain
+  public let output: IntervalDomain
+  // The map from input components to output components.
+  public let indexMap: Permutation
+
+  public init(
+      input: IntervalDomain, output: IntervalDomain, indexMap: Permutation) {
+    self.input = input
+    self.output = output
+    self.indexMap = indexMap
+  }
+
+  public class func compose(
+      inner f: AlternateTranslationMap, outer g: AlternateTranslationMap) {
+    if let intersection = f.output.intersectionWith(g.input) {
+      let fCover = intersection.coveredBy(f.output)!
+      let gCover = intersection.coveredBy(g.input)!
+
+      var inputOrder = [Int](repeating: -1, count: newLengths.count)
+      var inputIndex = 0
+      for (fOutputIndex, fInputIndex) in f.indexMap.inverse {
+        let coveredRange = fCover.indexRangeCoveredBy(coverIndex: fOutputIndex)
+        for index in coveredRange {
+          inputOrder[index] = inputIndex
+          inputIndex += 1
+        }
+      }
+      var outputOrder = [Int](repeating: -1, count: newLengths.count)
+      var outputIndex = 0
+      for (gInputIndex, gOutput)
+      for i in intersection.indices {
+        let fOutputIndex = fCover.indexMap[i]
+        let gInputIndex = gCover.indexMap[i]
+
+      }
+    }
+    return nil
+
+  }
+}*/
+
 // Invariants:
 //   outputIntervals.lengths() ==
 //       outputOrder[inputOrder.inverse[inputIntervals.lengths()]]
@@ -36,6 +78,11 @@ public class IntervalTranslationMap {
   public let inputOrder: Permutation
   public let outputIntervals: IntervalDomain
   public let outputOrder: Permutation
+
+  // EToIEM: the "monodromy invariant". Maps indices of inputIntervals to their
+  // corresponding index in outputIntervals. Independent of interval lengths
+  // or position other than relative order.
+  public lazy var indexMap = outputOrder[inputOrder.inverse]
 
   public init(
       inputIntervals: IntervalDomain,
@@ -84,27 +131,27 @@ public class IntervalTranslationMap {
   }
 
   public subscript(_ intervals: IntervalDomain) -> IntervalDomain? {
-    if let inputs = intervals.asSubrangeOf(inputIntervals) {
+    if let inputs = intervals.intersectionWith(inputIntervals) {
       var outputs: [Interval] = []
-      for input in inputs {
-        let inputContainer = input.containingInterval
-        let outputIndex = outputOrder[inputOrder.inverse[inputContainer.index]]
-        let outputContainer = outputIntervals[outputIndex]
-        let inputOffset = input.leftBoundary - inputContainer.leftBoundary
+      let cover = inputs.coveredBy(inputIntervals)!
+      for interval in inputs {
+        // Get the index in our inputIntervals of the interval containing this
+        // one.
+        let inputContainerIndex = cover.indexMap[interval.index]
+        let inputContainer = inputIntervals[inputContainerIndex]
+        let outputContainerIndex = indexMap[inputContainerIndex]
+        let outputContainer = outputIntervals[outputContainerIndex]
+        let inputOffset = interval.leftBoundary - inputContainer.leftBoundary
         outputs.append(
           Interval(
               leftBoundary: outputContainer.leftBoundary + inputOffset,
-              length: input.length))
+              length: interval.length))
       }
       return IntervalDomain(fromSortedIntervals: outputs)
     }
     return nil
   }
 
-  // EToIEM: the "monodromy invariant". Independent of interval lengths.
-  public func canonicalPermutation() -> Permutation {
-    return outputOrder[inputOrder.inverse]
-  }
 
   // EToIEM: $w = \Omega_\pi(\lambda)$
   public func intervalOffsets() -> [k] {
@@ -170,7 +217,7 @@ public class IntervalExchangeMap: IntervalTranslationMap {
   }
 
   public subscript(_ f: IntervalExchangeMap) -> IntervalExchangeMap {
-    return IntervalExchangeMap.compose(inner: f, outer: self)
+    return IntervalExchangeMap.compose(inner: f, outer: self)!
   }
 
   // The Rauzy-Veech induction of the map.
@@ -247,96 +294,43 @@ public class IntervalExchangeMap: IntervalTranslationMap {
     return result
   }
 
-  /*public static func newCompose(
-    inner f: IntervalExchangeMap,
-    outer g: IntervalExchangeMap) -> IntervalExchangeMap {
-    let fSubrange = f.outputIntervals.asSubrangeOf(g.inputIntervals)
-
-  )*/
-
-  // Invariants: f.bounds == g.bounds
   public static func compose(
       inner f: IntervalExchangeMap,
-      outer g: IntervalExchangeMap) -> IntervalExchangeMap {
-    let fLengths = f.intervalLengths
-    let gLengths = g.intervalLengths
-    var fIndex = 0
-    var gIndex = 0
-    var fInclusion = IntervalInclusion(index: 0, length: 0)
-    var gInclusion = IntervalInclusion(index: 0, length: 0)
-    var fInclusions: [IntervalInclusion] = []
-    var gInclusions: [IntervalInclusion] = []
-    var newIntervalLengths: [k] = []
-    var nextPos = k.zero()
-    var fPos = k.zero()
-    var gPos = k.zero()
+      outer g: IntervalExchangeMap) -> IntervalExchangeMap? {
+    if let intersection = f.outputIntervals.intersectionWith(g.inputIntervals) {
+      guard intersection.totalLength() == f.inputIntervals.totalLength()
+          else { return nil}
+      let fCover = intersection.coveredBy(f.outputIntervals)!
+      let gCover = intersection.coveredBy(g.inputIntervals)!
 
-    while fIndex < fLengths.count || gIndex < gLengths.count {
-      let pos: k = nextPos
-      let fLength =
-          (fIndex < fLengths.count)
-        ? f.outputIntervals[fIndex].length
-        : nil
-      let gLength =
-          (gIndex < gLengths.count)
-        ? g.inputIntervals[gIndex].length
-        : nil
-
-      let fNextPos = (fLength != nil) ? fPos + fLength! : nil
-      let gNextPos = (gLength != nil) ? gPos + gLength! : nil
-      nextPos =
-          (fNextPos == nil)
-        ? gNextPos!
-        : (gNextPos == nil)
-        ? fNextPos!
-        : min(fNextPos!, gNextPos!)
-
-      fInclusion.length += 1
-      gInclusion.length += 1
-
-      let nextLength = nextPos - pos
-      newIntervalLengths.append(nextLength)
-      if fNextPos == nextPos {
-        fInclusions.append(fInclusion)
-        fInclusion = IntervalInclusion(
-            index: newIntervalLengths.count, length: 0)
-        fIndex += 1
-        fPos = nextPos
+      let newLengths = intersection.lengths()
+      var inputMap = [Int](repeating: -1, count: newLengths.count)
+      var inputIndex = 0
+      // Traverse f's intervals in input order
+      for (_, fOutputIndex) in f.indexMap {
+        let coveredRange = fCover.indexRangeCoveredBy(coverIndex: fOutputIndex)
+        for index in coveredRange {
+          inputMap[index] = inputIndex
+          inputIndex += 1
+        }
       }
-      if gNextPos == nextPos {
-        gInclusions.append(gInclusion)
-        gInclusion = IntervalInclusion(
-            index: newIntervalLengths.count, length: 0)
-        gIndex += 1
-        gPos = nextPos
+      var outputMap = [Int](repeating: -1, count: newLengths.count)
+      var outputIndex = 0
+      // Traverse g's intervals in output order
+      for (_, gInputIndex) in g.indexMap.inverse {
+        let coveredRange = gCover.indexRangeCoveredBy(coverIndex: gInputIndex)
+        for index in coveredRange {
+          outputMap[index] = outputIndex
+          outputIndex += 1
+        }
       }
+      return IntervalExchangeMap(
+        intervalLengths: newLengths,
+        leftBoundary: f.inputIntervals.first!.leftBoundary,
+        inputOrder: Permutation(forwardMap: inputMap),
+        outputOrder: Permutation(forwardMap: outputMap))
     }
-    var newInputOrder = [Int](repeating: -1, count: newIntervalLengths.count)
-    var newInputIndex = 0
-    for fInputIndex in f.inputOrder.domain() {
-      let fOutputIndex = f.outputOrder[f.inputOrder.inverse[fInputIndex]]
-      let fInc = fInclusions[fOutputIndex]
-      for j in 0..<fInc.length {
-        newInputOrder[fInc.index + j] = newInputIndex + j
-      }
-      newInputIndex += fInc.length
-    }
-    let input = Permutation(forwardMap: newInputOrder)
-    var newOutputOrder = [Int](repeating: -1, count: newIntervalLengths.count)
-    var newOutputIndex = 0
-    for gOutputIndex in g.outputOrder.codomain() {
-      let gInputIndex = g.inputOrder[g.outputOrder.inverse[gOutputIndex]]
-      let gInc = gInclusions[gInputIndex]
-      for j in 0..<gInc.length {
-        newOutputOrder[gInc.index + j] = newOutputIndex + j
-      }
-      newOutputIndex += gInc.length
-    }
-    let output = Permutation(forwardMap: newOutputOrder)
-    return IntervalExchangeMap(
-        intervalLengths: newIntervalLengths,
-        leftBoundary: f.bounds.leftBoundary,
-        inputOrder: input, outputOrder: output)
+    return nil
   }
 
   public func raisedToPower(_ n: Int) -> IntervalExchangeMap {
@@ -352,7 +346,7 @@ public class IntervalExchangeMap: IntervalTranslationMap {
   }
 
   public func isIrreducible() -> Bool {
-    let map = self.canonicalPermutation().forwardMap
+    let map = self.indexMap.forwardMap
     var highestSeen = -1
     for i in 0..<(map.count - 1) {
       if map[i] > highestSeen {

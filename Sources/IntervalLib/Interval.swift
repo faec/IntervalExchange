@@ -24,22 +24,22 @@ public protocol IntervalCollectionProtocol: Collection
 }
 
 public protocol IntervalMapProtocol {
-  associatedtype FromType: IntervalCollectionProtocol
-  associatedtype ToType: IntervalCollectionProtocol
+  associatedtype InputType: IntervalCollectionProtocol
+  associatedtype OutputType: IntervalCollectionProtocol
 
   associatedtype IndexMapType: IndexMapProtocol where
-      IndexMapType.FromIndexType == FromType.Index,
-      IndexMapType.ToIndexType == ToType.Index
+      IndexMapType.InputIndexType == InputType.Index,
+      IndexMapType.OutputIndexType == OutputType.Index
 
-  var fromIntervals: FromType { get }
-  var toIntervals: ToType { get }
+  var inputIntervals: InputType { get }
+  var outputIntervals: OutputType { get }
   var indexMap: IndexMapType { get }
 }
 
 public protocol IntervalBijectionProtocol: IntervalMapProtocol
     where IndexMapType: IndexBijectionProtocol {
   associatedtype Inverse: IntervalBijectionProtocol
-      where Inverse.FromType == ToType, Inverse.ToType == FromType
+      where Inverse.InputType == OutputType, Inverse.OutputType == InputType
 
   var inverse: Inverse { get }
 }

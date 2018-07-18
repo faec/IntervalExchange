@@ -86,7 +86,7 @@ final class IntervalExchangeTests: XCTestCase {
     }
 
     // Check that the permutation from input to output is right.
-    XCTAssertEqual(g.canonicalPermutation().forwardMap, [2, 0, 1])
+    XCTAssertEqual(g.indexMap.forwardMap, [2, 0, 1])
   }
 
   func test3Compose() {
@@ -131,7 +131,7 @@ final class IntervalExchangeTests: XCTestCase {
     }
     XCTAssertEqual(g.intervalLengths.min()!, k(1, over: 30))
     XCTAssertEqual(
-        g.canonicalPermutation().forwardMap,
+        g.indexMap.forwardMap,
         [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
          23, 24, 25, 26, 27, 28, 29, 30, 0, 1, 2, 3, 4, 5])
   }

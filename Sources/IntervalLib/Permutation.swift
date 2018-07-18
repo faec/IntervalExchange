@@ -64,11 +64,35 @@ public class Permutation: IndexBijectionProtocol {
       Permutation(forwardMap: inverseMap, inverseMap: forwardMap)
 
   public func domain() -> CountableRange<Int> {
-    return (0..<forwardMap.count)
+    return forwardMap.indices
   }
 
   public func codomain() -> CountableRange<Int> {
-    return (0..<forwardMap.count)
+    return inverseMap.indices
+  }
+}
+
+extension Permutation: Sequence {
+
+  public func makeIterator() -> ForwardMapIterator {
+    return ForwardMapIterator(permutation: self)
+  }
+
+  public struct ForwardMapIterator: IteratorProtocol {
+    let permutation: Permutation
+    private var index: Int = 0
+
+    init(permutation: Permutation) {
+      self.permutation = permutation
+    }
+
+    public mutating func next() -> (inputIndex: Int, outputIndex: Int)? {
+      if index >= permutation.size() {
+        return nil
+      }
+      defer { index += 1 }
+      return (inputIndex: index, outputIndex: permutation[index])
+    }
   }
 }
 
