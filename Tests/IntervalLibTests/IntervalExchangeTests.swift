@@ -126,10 +126,13 @@ final class IntervalExchangeTests: XCTestCase {
         intervalLengths: lengths, leftBoundary: k.zero(),
         inputOrder: inputOrder, outputOrder: outputOrder)
     var g = f
+    var count = 0
     while g.intervalLengths.max()! != k(1, over: 30) {
       g = f[g]
+      count += 1
     }
     XCTAssertEqual(g.intervalLengths.min()!, k(1, over: 30))
+    XCTAssertEqual(count, 18)
     XCTAssertEqual(
         g.indexMap.forwardMap,
         [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
@@ -157,7 +160,7 @@ final class IntervalExchangeTests: XCTestCase {
 
   }
 
-  func testRecurse() {
+  func testInduction() {
     // This test case is drawn from Example 2.2 of EToIEM.
     let A = 0, B = 1, C = 2, D = 3, E = 4
     // "inverseMap" because "pi" is the inverse of "pi_0" and "pi_1".
@@ -171,7 +174,7 @@ final class IntervalExchangeTests: XCTestCase {
 
     XCTAssert(f.intervalLengths[D] < f.intervalLengths[C])
     XCTAssertEqual(f.type(), 1)
-    let r = f.recurse()
+    let r = f.induction()
     XCTAssertNotNil(r)
     if r != nil {
       XCTAssertEqual(r!.inputOrder.inverseMap, [B, C, D, A, E])

@@ -222,10 +222,10 @@ public class IntervalExchangeMap: IntervalTranslationMap {
 
   // The Rauzy-Veech induction of the map.
   // EToIEM:
-  //   f.recurse() = $\hat{R}(f)$
-  //   f.recurse().intervalLengths = $\lambda'$
-  //   f.recurse().{input, output}.order = $\pi'$
-  public func recurse() -> IntervalExchangeMap? {
+  //   f.induction() = $\hat{R}(f)$
+  //   f.induction().intervalLengths = $\lambda'$
+  //   f.induction().{input, output}.order = $\pi'$
+  public func induction() -> IntervalExchangeMap? {
     // EToIEM:
     //   lastInputIndex = $\alpha(0)$
     //   lastOutputIndex = $\alpha(1)$
@@ -285,11 +285,11 @@ public class IntervalExchangeMap: IntervalTranslationMap {
   }
 
   // EToIEM:
-  //   f.recurse(count: n) = $\hat{R}^n(f)$
-  public func recurse(count: Int) -> IntervalExchangeMap? {
+  //   f.induction(count: n) = $\hat{R}^n(f)$
+  public func induction(count: Int) -> IntervalExchangeMap? {
     var result: IntervalExchangeMap? = self
     for _ in 0..<count {
-      result = result?.recurse()
+      result = result?.induction()
     }
     return result
   }
@@ -472,3 +472,18 @@ extension IntervalExchangeMap {
         interval, rotationOffset: offset)
   }
 }
+
+/*public class IntervalExchangeRotationMap {
+  public let bounds: Interval
+  public let pivotPos: k
+
+  public init(bounds: IntervalProtocol, pivotPos: k) {
+    self.bounds = Interval(bounds)
+    self.pivotPos = pivotPos
+  }
+
+  public class RaisedToPower: IntervalExchangeRotationMap {
+    public let power: Int
+
+  }
+}*/
