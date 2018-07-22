@@ -78,7 +78,7 @@ As in EToIEM all intervals include their left boundary point and exclude their r
     }
     ```
 
-    The _similarity_ here means the number of times `f` must be applied to `p0` and `p1` for them to end up in different input intervals. E.g. in the `f` defined above, the similarity of `0` and `1/2` is `0`, because they already start in different intervals. The similarity of `8/15` and `11/15` is `1`, because they both start in the last input interval, but after the first map they are split between input intervals `0` and `1`. Moving points closer together increases their similarity.
+    The _similarity_ here means the number of times `f` must be applied to `p0` and `p1` for them to end up in different input intervals. E.g. in the `f` defined above, the similarity of `0` and `1/2` is `0`, because they already start in different intervals. The similarity of `8/15` and `13/15` is `1`, because they both start in the last input interval, but after the first map they are split between input intervals `0` and `1`. Moving points closer together increases their similarity.
 
     If the similarity exceeds `maxDepth`, the function should return `nil`.
 
